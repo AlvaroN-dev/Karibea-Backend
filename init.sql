@@ -1,0 +1,14 @@
+CREATE DATABASE card_db;
+CREATE DATABASE catalog_db;
+CREATE DATABASE chatbot_db;
+CREATE DATABASE identity_db;
+CREATE DATABASE inventory_db;
+CREATE DATABASE marketing_db;
+CREATE DATABASE notification_db;
+CREATE DATABASE order_db;
+CREATE DATABASE payment_db;
+CREATE DATABASE review_db;
+CREATE DATABASE search_db;
+CREATE DATABASE shipping_db;
+CREATE DATABASE store_db;
+CREATE DATABASE user_db;
