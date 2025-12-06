@@ -1,13 +1,13 @@
-package com.microservice.card;
+package com.microservice.shopCart;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MicroserviceCardApplication {
+public class MicroserviceShopCartApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MicroserviceCardApplication.class, args);
+		SpringApplication.run(MicroserviceShopCartApplication.class, args);
 	}
 
 }
