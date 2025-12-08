@@ -379,14 +379,14 @@ services:
           cpus: '0.1'
           memory: 200M
 
-  microservice-card:
+  microservice-shopCart:
     build:
       context: .
-      dockerfile: microservice-card/Dockerfile
-    container_name: microservice-card
+      dockerfile: microservice-shopCart/Dockerfile
+    container_name: microservice-shopCart
     environment:
       <<: *common-env
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CARD}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHOPCART}
     networks:
       - microservices-net
     depends_on:

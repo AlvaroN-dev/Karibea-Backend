@@ -1,4 +1,4 @@
-CREATE DATABASE card_db;
+CREATE DATABASE shop_cart_db;
 CREATE DATABASE catalog_db;
 CREATE DATABASE chatbot_db;
 CREATE DATABASE identity_db;

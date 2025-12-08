@@ -24,7 +24,7 @@
         <module>microservice-config</module>
         <module>microservice-catalog</module>
         <module>microservice-chatbot</module>
-        <module>microservice-card</module>
+        <module>microservice-shopcart</module>
         <module>microservice-identity</module>
         <module> microservice-inventory</module>
         <module>microservice-marketing</module>
@@ -50,6 +50,13 @@
             <artifactId>lombok</artifactId>
             <version>1.18.42</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.8.14</version>
+        </dependency>
+
     </dependencies>
 
 
