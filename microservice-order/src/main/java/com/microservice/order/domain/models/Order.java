@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class Order {
-    private Long id;
+    private Long idOrder;
     private String orderNumber;
     private Long externalUserProfileId;
     private Long externalStoreId;
@@ -30,11 +30,14 @@ public class Order {
     private LocalDateTime cancelledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
     private List<OrderItem> items;
     private List<OrderCoupon> coupons;
 
     public Order() {
     }
+
+
 
 
 }
