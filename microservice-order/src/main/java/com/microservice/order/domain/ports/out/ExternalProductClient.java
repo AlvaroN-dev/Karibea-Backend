@@ -1,4 +1,5 @@
 package com.microservice.order.domain.ports.out;
 
-public class ExternalProductClient {
+public interface ExternalProductClient {
+    ExternalProduct getById(Long productId);
 }

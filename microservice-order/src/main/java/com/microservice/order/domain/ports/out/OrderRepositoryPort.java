@@ -7,8 +7,6 @@ import java.util.Optional;
 
 public interface OrderRepositoryPort {
     Order create(Order newOrder);
-    List<Order> getAll();
-    Optional<Order> getById(Long idOrder);
-    Optional<Order> update(Long id, Order updateOrder);
-    Boolean delete(Long idOrder);
+    Order getById(Long idOrder);
+
 }

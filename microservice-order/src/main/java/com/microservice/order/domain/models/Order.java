@@ -3,27 +3,35 @@ package com.microservice.order.domain.models;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class Order {
-    private Long idOrder;
+
+    private UUID id;
     private String orderNumber;
-    private Long externalUserProfileId;
-    private Long externalStoreId;
-    private Long idStatusOrders;
+
+    private UUID externalUserId;
+    private UUID externalStoreId;
+    private UUID externalShipmentId;
+    private UUID externalPaymentId;
+
+    private UUID statusId;
+
     private BigDecimal subtotal;
     private BigDecimal discountTotal;
     private BigDecimal shippingTotal;
     private BigDecimal taxTotal;
     private BigDecimal grandTotal;
+
     private String currency;
-    private Long externalPaymentId;
-    private Long externalShipmentId;
     private String shippingAddress;
     private String billingAddress;
+
     private String notes;
     private String customerNotes;
     private String ipAddress;
     private String userAgent;
+
     private LocalDateTime confirmedAt;
     private LocalDateTime shippedAt;
     private LocalDateTime deliveredAt;
@@ -36,6 +44,8 @@ public class Order {
 
     public Order() {
     }
+
+
 
 
 

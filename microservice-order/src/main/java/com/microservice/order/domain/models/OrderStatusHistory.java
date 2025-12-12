@@ -1,19 +1,15 @@
 package com.microservice.order.domain.models;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class OrderStatusHistory {
 
-    private Long idStatusHistory;
-    private Long idOrder;
-
-    private String previousStatus;
-    private String newStatus;
-
-    private String changedBy;
-    private String changedReason;
-    private String metadata;
-
+    private UUID id;
+    private UUID orderId;
+    private UUID previousStatus;
+    private UUID newStatus;
+    private String changeReason;
     private LocalDateTime createdAt;
 
     public OrderStatusHistory() {
