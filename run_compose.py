@@ -2,6 +2,77 @@ import subprocess
 import sys
 import os
 import time
+import platform
+import shutil
+import socket
+
+# Global variable to store the detected compose command
+COMPOSE_CMD = None
+
+def check_docker_permissions():
+    """Check if docker is accessible."""
+    try:
+        subprocess.run(
+            ["docker", "info"], 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL, 
+            check=True
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+def get_compose_command():
+    """Determine if we should use 'docker compose' or 'docker-compose'."""
+    # Try 'docker compose' (V2)
+    try:
+        subprocess.run(
+            ["docker", "compose", "version"], 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL, 
+            check=True
+        )
+        return ["docker", "compose"]
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    # Try 'docker-compose' (V1)
+    if shutil.which("docker-compose"):
+        return ["docker-compose"]
+    
+    return None
+
+def initialize():
+    """Initialize the environment, checking permissions and dependencies."""
+    global COMPOSE_CMD
+    
+    # Check Docker accessibility
+    if not check_docker_permissions():
+        if platform.system() == "Linux":
+            print("⚠️  Permission denied connecting to Docker daemon.")
+            if os.geteuid() != 0:
+                print("🔄 Attempting to restart with sudo...")
+                try:
+                    args = ["sudo", sys.executable] + sys.argv
+                    os.execvp("sudo", args)
+                except Exception as e:
+                    print(f"❌ Failed to restart with sudo: {e}")
+                    sys.exit(1)
+            else:
+                print("❌ Running as root but Docker is not responding.")
+                print("💡 Check if Docker daemon is running (systemctl status docker)")
+                sys.exit(1)
+        else:
+            print("❌ Docker is not running or not accessible.")
+            print("💡 Please start Docker Desktop.")
+            sys.exit(1)
+
+    # Detect Compose command
+    COMPOSE_CMD = get_compose_command()
+    if not COMPOSE_CMD:
+        print("❌ Docker Compose not found.")
+        print("💡 Please install Docker Compose (v1 or v2).")
+        sys.exit(1)
 
 def is_container_running(container_name):
     """Check if a container is running and healthy."""
@@ -36,6 +107,36 @@ def wait_for_healthy(container_name, timeout=120, interval=5):
         elapsed += interval
     return False
 
+def check_and_free_port_5432():
+    """Check if port 5432 is in use and try to free it if it's a local service."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('127.0.0.1', 5432))
+    sock.close()
+    
+    if result == 0: # Port is open (in use)
+        print("⚠️  Port 5432 is already in use.")
+        
+        # Check if it's our postgres container
+        if is_container_running("postgres"):
+            print("   ℹ️  It seems to be the Docker container 'postgres'. Proceeding...")
+            return True
+            
+        if platform.system() == "Linux":
+            print("   🔄 Attempting to stop local PostgreSQL service...")
+            try:
+                subprocess.run(["sudo", "systemctl", "stop", "postgresql"], check=True)
+                print("   ✅ Local PostgreSQL service stopped.")
+                time.sleep(2) # Wait for it to release port
+                return True
+            except subprocess.CalledProcessError:
+                print("   ❌ Failed to stop local PostgreSQL service.")
+                print("   💡 Please stop it manually: sudo systemctl stop postgresql")
+                return False
+        else:
+             print("   ❌ Port 5432 is in use. Please stop the local PostgreSQL service.")
+             return False
+    return True
+
 def run_compose(environment):
     if environment not in ['dev', 'prod']:
         print("Invalid environment. Please choose 'dev' or 'prod'.")
@@ -50,6 +151,10 @@ def run_compose(environment):
     print(f"\n🚀 Starting Docker Compose for {environment.upper()} environment...")
     print("="*60)
     
+    # Check for port conflicts
+    if not check_and_free_port_5432():
+        return
+    
     # Define service groups in order of dependency
     database_services = ["postgres"]
     kafka_services = ["kafka-0", "kafka-1", "kafka-2"]
@@ -58,7 +163,7 @@ def run_compose(environment):
     eureka_service = ["microservice-eureka"]
     
     other_services = [
-        "microservice-catalog", "microservice-chatbot", "microservice-card",
+        "microservice-catalog", "microservice-chatbot",
         "microservice-identity", "microservice-inventory", "microservice-marketing",
         "microservice-notification", "microservice-order", "microservice-payment",
         "microservice-review", "microservice-search", "microservice-shipping",
@@ -78,7 +183,7 @@ def run_compose(environment):
         if is_container_running("postgres") and is_container_healthy("postgres"):
             print("   ✅ PostgreSQL is already running and healthy. Skipping...")
         else:
-            subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + database_services, check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + database_services, check=True)
             print("   ⏳ Waiting for PostgreSQL to initialize...")
             if not wait_for_healthy("postgres", timeout=60):
                 print("   ⚠️  PostgreSQL healthcheck timeout, continuing...")
@@ -96,7 +201,7 @@ def run_compose(environment):
         if kafka_running and kafka_healthy:
             print("   ✅ Kafka cluster is already running and healthy. Skipping...")
         else:
-            subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + kafka_services, check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + kafka_services, check=True)
             print("   ⏳ Waiting for Kafka cluster to form quorum (this takes ~60s)...")
             time.sleep(60)
         
@@ -106,7 +211,7 @@ def run_compose(environment):
         print("\n" + "="*60)
         print("📋 Phase 0.6: Kafka Topics")
         print("="*60)
-        subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + kafka_init_service, check=True)
+        subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + kafka_init_service, check=True)
         print("   ✅ Kafka topics creation triggered")
         time.sleep(5)
         
@@ -128,10 +233,10 @@ def run_compose(environment):
             )
             if result.returncode == 0:
                 # Container exists, just start it
-                subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + config_service, check=True)
+                subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + config_service, check=True)
             else:
                 # Container doesn't exist, build it
-                subprocess.run(["docker-compose", "-f", compose_file, "up", "--build", "-d"] + config_service, check=True)
+                subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "--build", "-d"] + config_service, check=True)
             
             print("   ⏳ Waiting for Config Service to be healthy...")
             if not wait_for_healthy("microservice-config", timeout=90):
@@ -153,9 +258,9 @@ def run_compose(environment):
                 capture_output=True, check=False
             )
             if result.returncode == 0:
-                subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + eureka_service, check=True)
+                subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + eureka_service, check=True)
             else:
-                subprocess.run(["docker-compose", "-f", compose_file, "up", "--build", "-d"] + eureka_service, check=True)
+                subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "--build", "-d"] + eureka_service, check=True)
             
             print("   ⏳ Waiting for Eureka Service to be healthy...")
             if not wait_for_healthy("microservice-eureka", timeout=90):
@@ -180,7 +285,7 @@ def run_compose(environment):
         else:
             print(f"   📦 Starting {len(services_to_start)} services...")
             # Start all at once without rebuild (images already built)
-            subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + other_services, check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + other_services, check=True)
             print("   ⏳ Waiting 30s for services to register with Eureka...")
             time.sleep(30)
         
@@ -193,9 +298,9 @@ def run_compose(environment):
         
         if is_container_running("microservice-gateway"):
             print("   ✅ Gateway is already running. Refreshing...")
-            subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + gateway_service, check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + gateway_service, check=True)
         else:
-            subprocess.run(["docker-compose", "-f", compose_file, "up", "-d"] + gateway_service, check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + gateway_service, check=True)
         
         print("   ⏳ Waiting for Gateway to start...")
         time.sleep(10)
@@ -240,7 +345,7 @@ def build_images(environment):
     print("This will NOT restart running containers.\n")
     
     try:
-        subprocess.run(["docker-compose", "-f", compose_file, "build"], check=True)
+        subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "build"], check=True)
         print(f"\n✅ All images built successfully for {environment.upper()}.")
         print("💡 Use option 1 or 2 to start the environment.")
     except subprocess.CalledProcessError as e:
@@ -258,7 +363,7 @@ def stop_compose(environment):
         
     print(f"\n🛑 Stopping {environment.upper()} environment...")
     try:
-        subprocess.run(["docker-compose", "-f", compose_file, "down"], check=True)
+        subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "down"], check=True)
         print(f"✅ {environment.upper()} environment stopped successfully.")
     except subprocess.CalledProcessError as e:
         print(f"❌ Error stopping services: {e}")
@@ -284,7 +389,7 @@ def clean_volumes(environment):
     if confirm == 'yes':
         print(f"\n🗑️  Stopping and removing volumes for {environment.upper()}...")
         try:
-            subprocess.run(["docker-compose", "-f", compose_file, "down", "-v"], check=True)
+            subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "down", "-v"], check=True)
             print(f"✅ Volumes cleaned successfully for {environment.upper()}.")
         except subprocess.CalledProcessError as e:
             print(f"❌ Error cleaning volumes: {e}")
@@ -303,7 +408,7 @@ def view_logs(environment):
         
     print(f"\n📜 Showing all logs for {environment.upper()} environment...")
     print("Press Ctrl+C to exit\n")
-    cmd = ["docker-compose", "-f", compose_file, "logs", "-f"]
+    cmd = COMPOSE_CMD + [ "-f", compose_file, "logs", "-f"]
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
@@ -357,7 +462,7 @@ def view_specific_logs(environment):
         services = ["microservice-gateway"]
     elif choice == '9':
         services = [
-            "microservice-catalog", "microservice-chatbot", "microservice-card",
+            "microservice-catalog", "microservice-chatbot",
             "microservice-identity", "microservice-inventory", "microservice-marketing",
             "microservice-notification", "microservice-order", "microservice-payment",
             "microservice-review", "microservice-search", "microservice-shipping",
@@ -372,7 +477,7 @@ def view_specific_logs(environment):
     
     print(f"\n📜 Showing logs for: {', '.join(services)}")
     print("Press Ctrl+C to exit\n")
-    cmd = ["docker-compose", "-f", compose_file, "logs", "-f"] + services
+    cmd = COMPOSE_CMD + ["-f", compose_file, "logs", "-f"] + services
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
@@ -392,11 +497,13 @@ def show_status(environment):
     
     print(f"\n📊 Status of {environment.upper()} environment:\n")
     try:
-        subprocess.run(["docker-compose", "-f", compose_file, "ps"], check=True)
+        subprocess.run(COMPOSE_CMD + ["-f", compose_file, "ps"], check=True)
     except subprocess.CalledProcessError as e:
         print(f"❌ Error getting status: {e}")
 
 if __name__ == "__main__":
+    initialize()
+    
     while True:
         print("\n" + "="*60)
         print("🚀 MICROSERVICES DOCKER COMPOSE MANAGER")
