@@ -14,7 +14,7 @@ services:
   # ===========================================================================
   # INFRASTRUCTURE SERVICES
   # ===========================================================================
-  
+
   postgres:
     image: postgres:15-alpine
     container_name: postgres
@@ -29,7 +29,7 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -63,7 +63,7 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -98,7 +98,7 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -133,7 +133,7 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -159,16 +159,7 @@ services:
       kafka-2:
         condition: service_healthy
     command: >
-      bash -c "
-      echo 'Waiting for Kafka cluster to be ready...' &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic orders &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic payments &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic inventory &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic notifications &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic shipping &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic products &&
-      echo 'Topics created successfully'
-      "
+      bash -c " echo 'Waiting for Kafka cluster to be ready...' && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic orders && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic payments && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic inventory && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic notifications && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic shipping && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic products && echo 'Topics created successfully' "
     networks:
       - microservices-net
     deploy:
@@ -180,7 +171,7 @@ services:
   # ===========================================================================
   # CORE SERVICES (Config Server + Eureka) - Critical services
   # ===========================================================================
-  
+
   microservice-config:
     build:
       context: .
@@ -197,7 +188,7 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8888'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8888'" ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -233,7 +224,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8761'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8761'" ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -251,7 +242,7 @@ services:
   # ===========================================================================
   # API GATEWAY - Depends on Eureka and Config being healthy
   # ===========================================================================
-  
+
   microservice-gateway:
     build:
       context: .
@@ -277,7 +268,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -295,7 +286,7 @@ services:
   # ===========================================================================
   # BUSINESS MICROSERVICES - Common configuration with resilience
   # ===========================================================================
-  
+
   microservice-catalog:
     build:
       context: .
@@ -329,7 +320,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -364,7 +355,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -382,8 +373,8 @@ services:
   microservice-card:
     build:
       context: .
-      dockerfile: microservice-card/Dockerfile
-    container_name: microservice-card
+      dockerfile: microservice-shopCart/Dockerfile
+    container_name: microservice-shopcart
     environment:
       <<: *common-env
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CARD}
@@ -399,7 +390,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -434,7 +425,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -469,7 +460,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -504,7 +495,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -539,7 +530,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -574,7 +565,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -609,7 +600,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -644,7 +635,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -679,7 +670,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -714,7 +705,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -749,7 +740,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -784,7 +775,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'" ]
       interval: 30s
       timeout: 10s
       retries: 5
