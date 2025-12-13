@@ -4,7 +4,6 @@ import com.microservice.order.domain.models.records.Money;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.util.UUID;
 
 /**
  * OrderCoupon entity - represents a coupon applied to an order.

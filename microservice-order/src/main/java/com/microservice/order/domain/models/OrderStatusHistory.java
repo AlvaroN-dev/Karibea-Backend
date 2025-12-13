@@ -4,7 +4,6 @@ import com.microservice.order.domain.models.enums.OrderStatusEnum;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.util.UUID;
 
 /**
  * OrderStatusHistory entity - audit trail for order status changes.

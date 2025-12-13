@@ -25,7 +25,6 @@ public class Order {
 
     private UUID id;
 
-    private UUID id;
     private String orderNumber;
 
     // External references
