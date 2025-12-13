@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
 	</parent>
 	<groupId>com.microservice.card</groupId>
-	<artifactId>microservice-card</artifactId>
+	<artifactId>microservice-shopcart</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>microservice-card</name>
 	<description>Spring Boot Microservices Card</description>
