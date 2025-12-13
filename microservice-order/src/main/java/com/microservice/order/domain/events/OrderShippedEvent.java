@@ -1,14 +1,13 @@
 package com.microservice.order.domain.events;
 
-import lombok.Getter;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * Event published when an order is shipped.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
 public class OrderShippedEvent extends DomainEvent {
 
     private final UUID shipmentId;
@@ -22,5 +21,14 @@ public class OrderShippedEvent extends DomainEvent {
 
     public static OrderShippedEvent of(UUID orderId, UUID shipmentId, LocalDateTime shippedAt) {
         return new OrderShippedEvent(orderId, shipmentId, shippedAt);
+    }
+
+    // Getters
+    public UUID getShipmentId() {
+        return shipmentId;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
     }
 }

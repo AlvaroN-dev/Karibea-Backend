@@ -3,24 +3,24 @@ package com.microservice.order.domain.models;
 import com.microservice.order.domain.events.*;
 import com.microservice.order.domain.exceptions.InvalidOrderStateTransitionException;
 import com.microservice.order.domain.exceptions.OrderInvariantViolationException;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
+import com.microservice.order.domain.models.records.Address;
+import com.microservice.order.domain.models.records.Money;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Order Aggregate Root - the main entry point for all Order operations.
  * Encapsulates business rules and invariants.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
-@Builder
-@AllArgsConstructor
 public class Order {
 
     private UUID id;
@@ -58,18 +58,17 @@ public class Order {
     private LocalDateTime updatedAt;
 
     // Child entities
-    @Builder.Default
-    private List<OrderItem> items = new ArrayList<>();
-    @Builder.Default
-    private List<OrderCoupon> coupons = new ArrayList<>();
-    @Builder.Default
-    private List<OrderStatusHistory> statusHistory = new ArrayList<>();
+    private List<OrderItem> items;
+    private List<OrderCoupon> coupons;
+    private List<OrderStatusHistory> statusHistory;
 
     // Domain events (transient - not persisted)
-    @Builder.Default
-    private transient List<DomainEvent> domainEvents = new ArrayList<>();
+    private transient List<DomainEvent> domainEvents;
 
-    public Order() {
+    /**
+     * Private constructor - use factory method create() or Builder.
+     */
+    private Order() {
         this.id = UUID.randomUUID();
         this.status = OrderStatusEnum.PENDING;
         this.createdAt = LocalDateTime.now();
@@ -342,5 +341,273 @@ public class Order {
 
     public void clearDomainEvents() {
         this.domainEvents.clear();
+    }
+
+    // ========== Getters (Pure Java) ==========
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
+    public UUID getExternalUserProfileId() {
+        return externalUserProfileId;
+    }
+
+    public UUID getExternalStoreId() {
+        return externalStoreId;
+    }
+
+    public UUID getExternalPaymentId() {
+        return externalPaymentId;
+    }
+
+    public UUID getExternalShipmentId() {
+        return externalShipmentId;
+    }
+
+    public OrderStatusEnum getStatus() {
+        return status;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public Address getShippingAddress() {
+        return shippingAddress;
+    }
+
+    public Address getBillingAddress() {
+        return billingAddress;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public String getCustomerNotes() {
+        return customerNotes;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public Money getSubtotal() {
+        return subtotal;
+    }
+
+    public Money getDiscountTotal() {
+        return discountTotal;
+    }
+
+    public Money getTaxTotal() {
+        return taxTotal;
+    }
+
+    public Money getShippingTotal() {
+        return shippingTotal;
+    }
+
+    public Money getGrandTotal() {
+        return grandTotal;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return Collections.unmodifiableList(items);
+    }
+
+    public List<OrderCoupon> getCoupons() {
+        return Collections.unmodifiableList(coupons);
+    }
+
+    public List<OrderStatusHistory> getStatusHistory() {
+        return Collections.unmodifiableList(statusHistory);
+    }
+
+    // ========== Builder for Reconstitution ==========
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final Order order = new Order();
+
+        public Builder id(UUID id) {
+            order.id = id;
+            return this;
+        }
+
+        public Builder orderNumber(String orderNumber) {
+            order.orderNumber = orderNumber;
+            return this;
+        }
+
+        public Builder externalUserProfileId(UUID id) {
+            order.externalUserProfileId = id;
+            return this;
+        }
+
+        public Builder externalStoreId(UUID id) {
+            order.externalStoreId = id;
+            return this;
+        }
+
+        public Builder externalPaymentId(UUID id) {
+            order.externalPaymentId = id;
+            return this;
+        }
+
+        public Builder externalShipmentId(UUID id) {
+            order.externalShipmentId = id;
+            return this;
+        }
+
+        public Builder status(OrderStatusEnum status) {
+            order.status = status;
+            return this;
+        }
+
+        public Builder currency(String currency) {
+            order.currency = currency;
+            return this;
+        }
+
+        public Builder shippingAddress(Address address) {
+            order.shippingAddress = address;
+            return this;
+        }
+
+        public Builder billingAddress(Address address) {
+            order.billingAddress = address;
+            return this;
+        }
+
+        public Builder notes(String notes) {
+            order.notes = notes;
+            return this;
+        }
+
+        public Builder customerNotes(String notes) {
+            order.customerNotes = notes;
+            return this;
+        }
+
+        public Builder ipAddress(String ip) {
+            order.ipAddress = ip;
+            return this;
+        }
+
+        public Builder userAgent(String ua) {
+            order.userAgent = ua;
+            return this;
+        }
+
+        public Builder subtotal(Money subtotal) {
+            order.subtotal = subtotal;
+            return this;
+        }
+
+        public Builder discountTotal(Money discount) {
+            order.discountTotal = discount;
+            return this;
+        }
+
+        public Builder taxTotal(Money tax) {
+            order.taxTotal = tax;
+            return this;
+        }
+
+        public Builder shippingTotal(Money shipping) {
+            order.shippingTotal = shipping;
+            return this;
+        }
+
+        public Builder grandTotal(Money grand) {
+            order.grandTotal = grand;
+            return this;
+        }
+
+        public Builder confirmedAt(LocalDateTime dt) {
+            order.confirmedAt = dt;
+            return this;
+        }
+
+        public Builder shippedAt(LocalDateTime dt) {
+            order.shippedAt = dt;
+            return this;
+        }
+
+        public Builder deliveredAt(LocalDateTime dt) {
+            order.deliveredAt = dt;
+            return this;
+        }
+
+        public Builder cancelledAt(LocalDateTime dt) {
+            order.cancelledAt = dt;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime dt) {
+            order.createdAt = dt;
+            return this;
+        }
+
+        public Builder updatedAt(LocalDateTime dt) {
+            order.updatedAt = dt;
+            return this;
+        }
+
+        public Builder items(List<OrderItem> items) {
+            order.items = new ArrayList<>(items);
+            return this;
+        }
+
+        public Builder coupons(List<OrderCoupon> coupons) {
+            order.coupons = new ArrayList<>(coupons);
+            return this;
+        }
+
+        public Builder statusHistory(List<OrderStatusHistory> history) {
+            order.statusHistory = new ArrayList<>(history);
+            return this;
+        }
+
+        public Order build() {
+            return order;
+        }
     }
 }

@@ -1,14 +1,13 @@
 package com.microservice.order.domain.events;
 
-import lombok.Getter;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * Event published when an order is confirmed after payment.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
 public class OrderConfirmedEvent extends DomainEvent {
 
     private final UUID paymentId;
@@ -22,5 +21,14 @@ public class OrderConfirmedEvent extends DomainEvent {
 
     public static OrderConfirmedEvent of(UUID orderId, UUID paymentId, LocalDateTime confirmedAt) {
         return new OrderConfirmedEvent(orderId, paymentId, confirmedAt);
+    }
+
+    // Getters
+    public UUID getPaymentId() {
+        return paymentId;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
     }
 }

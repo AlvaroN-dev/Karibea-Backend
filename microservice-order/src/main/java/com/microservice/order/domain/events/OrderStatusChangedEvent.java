@@ -1,14 +1,14 @@
 package com.microservice.order.domain.events;
 
-import com.microservice.order.domain.models.OrderStatusEnum;
-import lombok.Getter;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
 
 import java.util.UUID;
 
 /**
  * Event published when order status changes.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
 public class OrderStatusChangedEvent extends DomainEvent {
 
     private final OrderStatusEnum previousStatus;
@@ -26,5 +26,18 @@ public class OrderStatusChangedEvent extends DomainEvent {
     public static OrderStatusChangedEvent of(UUID orderId, OrderStatusEnum previousStatus,
             OrderStatusEnum newStatus, String reason) {
         return new OrderStatusChangedEvent(orderId, previousStatus, newStatus, reason);
+    }
+
+    // Getters
+    public OrderStatusEnum getPreviousStatus() {
+        return previousStatus;
+    }
+
+    public OrderStatusEnum getNewStatus() {
+        return newStatus;
+    }
+
+    public String getReason() {
+        return reason;
     }
 }

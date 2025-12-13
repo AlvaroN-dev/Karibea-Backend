@@ -1,8 +1,6 @@
 package com.microservice.order.domain.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import com.microservice.order.domain.models.records.Money;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,10 +9,9 @@ import java.util.UUID;
 /**
  * OrderItem entity - child of Order aggregate.
  * Represents a product line in an order.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
-@Builder
-@AllArgsConstructor
 public class OrderItem {
 
     private UUID id;
@@ -38,7 +35,10 @@ public class OrderItem {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public OrderItem() {
+    /**
+     * Private constructor - use factory method.
+     */
+    private OrderItem() {
         this.id = UUID.randomUUID();
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -116,5 +116,156 @@ public class OrderItem {
     public void cancel() {
         this.status = "CANCELLED";
         this.updatedAt = LocalDateTime.now();
+    }
+
+    // ========== Getters (Pure Java) ==========
+
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getOrderId() {
+        return orderId;
+    }
+
+    public UUID getExternalProductId() {
+        return externalProductId;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public String getVariantName() {
+        return variantName;
+    }
+
+    public String getSku() {
+        return sku;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public Money getUnitPrice() {
+        return unitPrice;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public Money getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public Money getTaxAmount() {
+        return taxAmount;
+    }
+
+    public Money getLineTotal() {
+        return lineTotal;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    // ========== Builder for Reconstitution ==========
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final OrderItem item = new OrderItem();
+
+        public Builder id(UUID id) {
+            item.id = id;
+            return this;
+        }
+
+        public Builder orderId(UUID orderId) {
+            item.orderId = orderId;
+            return this;
+        }
+
+        public Builder externalProductId(UUID id) {
+            item.externalProductId = id;
+            return this;
+        }
+
+        public Builder productName(String name) {
+            item.productName = name;
+            return this;
+        }
+
+        public Builder variantName(String name) {
+            item.variantName = name;
+            return this;
+        }
+
+        public Builder sku(String sku) {
+            item.sku = sku;
+            return this;
+        }
+
+        public Builder imageUrl(String url) {
+            item.imageUrl = url;
+            return this;
+        }
+
+        public Builder unitPrice(Money price) {
+            item.unitPrice = price;
+            return this;
+        }
+
+        public Builder quantity(int qty) {
+            item.quantity = qty;
+            return this;
+        }
+
+        public Builder discountAmount(Money discount) {
+            item.discountAmount = discount;
+            return this;
+        }
+
+        public Builder taxAmount(Money tax) {
+            item.taxAmount = tax;
+            return this;
+        }
+
+        public Builder lineTotal(Money total) {
+            item.lineTotal = total;
+            return this;
+        }
+
+        public Builder status(String status) {
+            item.status = status;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime dt) {
+            item.createdAt = dt;
+            return this;
+        }
+
+        public Builder updatedAt(LocalDateTime dt) {
+            item.updatedAt = dt;
+            return this;
+        }
+
+        public OrderItem build() {
+            return item;
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.microservice.order.application.dto.request;
 
-import com.microservice.order.domain.models.OrderStatusEnum;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 

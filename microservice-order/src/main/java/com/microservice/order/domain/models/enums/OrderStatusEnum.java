@@ -1,4 +1,4 @@
-package com.microservice.order.domain.models;
+package com.microservice.order.domain.models.enums;
 
 import java.util.Set;
 

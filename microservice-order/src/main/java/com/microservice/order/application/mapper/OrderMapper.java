@@ -3,6 +3,7 @@ package com.microservice.order.application.mapper;
 import com.microservice.order.application.dto.request.CreateOrderRequest;
 import com.microservice.order.application.dto.response.OrderResponse;
 import com.microservice.order.domain.models.*;
+import com.microservice.order.domain.models.records.Address;
 import com.microservice.order.domain.port.in.CreateOrderPort;
 import org.springframework.stereotype.Component;
 

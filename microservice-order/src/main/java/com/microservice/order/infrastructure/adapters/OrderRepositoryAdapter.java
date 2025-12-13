@@ -1,6 +1,9 @@
 package com.microservice.order.infrastructure.adapters;
 
 import com.microservice.order.domain.models.*;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
+import com.microservice.order.domain.models.records.Address;
+import com.microservice.order.domain.models.records.Money;
 import com.microservice.order.domain.port.out.OrderRepositoryPort;
 import com.microservice.order.infrastructure.entities.*;
 import com.microservice.order.infrastructure.repositories.JpaOrderRepository;

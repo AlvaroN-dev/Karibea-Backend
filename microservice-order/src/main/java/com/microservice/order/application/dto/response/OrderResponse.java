@@ -1,6 +1,6 @@
 package com.microservice.order.application.dto.response;
 
-import com.microservice.order.domain.models.OrderStatusEnum;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
 import lombok.Builder;
 
 import java.math.BigDecimal;

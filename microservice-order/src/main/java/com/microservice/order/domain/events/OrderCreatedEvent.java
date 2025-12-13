@@ -2,7 +2,6 @@ package com.microservice.order.domain.events;
 
 import com.microservice.order.domain.models.Order;
 import com.microservice.order.domain.models.OrderItem;
-import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,8 +9,9 @@ import java.util.UUID;
 
 /**
  * Event published when a new order is created.
+ * 
+ * PURE DOMAIN - No framework dependencies.
  */
-@Getter
 public class OrderCreatedEvent extends DomainEvent {
 
     private final String orderNumber;
@@ -37,7 +37,31 @@ public class OrderCreatedEvent extends DomainEvent {
         return new OrderCreatedEvent(order);
     }
 
-    @Getter
+    // Getters
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
+    public UUID getCustomerId() {
+        return customerId;
+    }
+
+    public UUID getStoreId() {
+        return storeId;
+    }
+
+    public List<OrderItemPayload> getItems() {
+        return items;
+    }
+
+    public BigDecimal getGrandTotal() {
+        return grandTotal;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
     public static class OrderItemPayload {
         private final UUID itemId;
         private final UUID productId;
@@ -55,6 +79,27 @@ public class OrderCreatedEvent extends DomainEvent {
 
         public static OrderItemPayload from(OrderItem item) {
             return new OrderItemPayload(item);
+        }
+
+        // Getters
+        public UUID getItemId() {
+            return itemId;
+        }
+
+        public UUID getProductId() {
+            return productId;
+        }
+
+        public String getProductName() {
+            return productName;
+        }
+
+        public int getQuantity() {
+            return quantity;
+        }
+
+        public BigDecimal getLineTotal() {
+            return lineTotal;
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.microservice.order.application.usecases;
 
-import com.microservice.order.domain.models.Address;
-import com.microservice.order.domain.models.Money;
+import com.microservice.order.domain.models.records.Address;
+import com.microservice.order.domain.models.records.Money;
 import com.microservice.order.domain.models.Order;
 import com.microservice.order.domain.models.OrderItem;
 import com.microservice.order.domain.port.in.CreateOrderPort;

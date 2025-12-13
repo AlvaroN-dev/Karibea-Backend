@@ -1,6 +1,6 @@
 package com.microservice.order.domain.port.in;
 
-import com.microservice.order.domain.models.OrderStatusEnum;
+import com.microservice.order.domain.models.enums.OrderStatusEnum;
 
 import java.util.UUID;
 
