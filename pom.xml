@@ -24,7 +24,7 @@
         <module>microservice-config</module>
         <module>microservice-catalog</module>
         <module>microservice-chatbot</module>
-        <module>microservice-card</module>
+        <module>microservice-shopcart</module>
         <module>microservice-identity</module>
         <module> microservice-inventory</module>
         <module>microservice-marketing</module>
