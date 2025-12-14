@@ -1,4 +1,4 @@
-package com.microservice.store.infrastructure.kafka;
+package com.microservice.store.infrastructure.kafka.producer;
 
 import com.microservice.store.domain.event.StoreCreatedEvent;
 import com.microservice.store.domain.port.StoreEventPublisherPort;
