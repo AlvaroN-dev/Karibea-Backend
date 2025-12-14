@@ -1,4 +1,4 @@
-package com.microservice.notification.kafka.consumer;
+package com.microservice.notification.infrastructure.kafka.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

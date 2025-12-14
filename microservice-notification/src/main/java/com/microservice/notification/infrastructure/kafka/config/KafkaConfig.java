@@ -1,4 +1,4 @@
-package com.microservice.notification.kafka.config;
+package com.microservice.notification.infrastructure.kafka.config;
 
 import java.util.HashMap;
 import java.util.Map;

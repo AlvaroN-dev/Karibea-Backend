@@ -7,6 +7,8 @@ import com.microservice.notification.domain.port.in.notification.GetNotification
 import com.microservice.notification.domain.port.in.notification.ListNotificationsUseCase;
 import com.microservice.notification.domain.port.in.notification.UpdateNotificationUseCase;
 import com.microservice.notification.domain.port.out.NotificationRepositoryPort;
+import com.microservice.notification.domain.port.out.EventPublisherPort;
+import com.microservice.notification.domain.events.NotificationCreatedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +20,12 @@ public class NotificationService implements CreateNotificationUseCase, UpdateNot
         DeleteNotificationUseCase, GetNotificationUseCase, ListNotificationsUseCase {
 
     private final NotificationRepositoryPort notificationRepositoryPort;
+    private final EventPublisherPort eventPublisherPort;
 
-    public NotificationService(NotificationRepositoryPort notificationRepositoryPort) {
+    public NotificationService(NotificationRepositoryPort notificationRepositoryPort,
+            EventPublisherPort eventPublisherPort) {
         this.notificationRepositoryPort = notificationRepositoryPort;
+        this.eventPublisherPort = eventPublisherPort;
     }
 
     @Override
@@ -29,7 +34,18 @@ public class NotificationService implements CreateNotificationUseCase, UpdateNot
         if (notification.getCreatedAt() == null) {
             notification.setCreatedAt(Instant.now());
         }
-        return notificationRepositoryPort.save(notification);
+        Notification saved = notificationRepositoryPort.save(notification);
+
+        // Publish event
+        NotificationCreatedEvent event = new NotificationCreatedEvent(
+                saved.getId(),
+                saved.getExternalUserProfileId(),
+                saved.getChannel(),
+                saved.getTitle(),
+                saved.getMessage());
+        eventPublisherPort.publish(event);
+
+        return saved;
     }
 
     @Override

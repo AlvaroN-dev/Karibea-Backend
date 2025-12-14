@@ -1,4 +1,4 @@
-package com.microservice.notification.kafka.producer;
+package com.microservice.notification.infrastructure.kafka.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
