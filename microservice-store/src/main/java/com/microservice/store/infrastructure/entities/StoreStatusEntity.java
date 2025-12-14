@@ -1,9 +1,14 @@
 package com.microservice.store.infrastructure.entities;
 
 import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "stores_status")
+@EntityListeners(AuditingEntityListener.class)
 public class StoreStatusEntity {
 
     @Id
@@ -15,6 +20,14 @@ public class StoreStatusEntity {
     private String verificationStatus;
 
     private String description;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "update_at")
+    private OffsetDateTime updatedAt;
     // Getters and Setters
 
     public Long getId() {
@@ -48,5 +61,21 @@ public class StoreStatusEntity {
     public void setDescription(String description) {
         this.description = description;
     }
-    
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
 }

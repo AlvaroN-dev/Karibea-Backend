@@ -1,9 +1,13 @@
 package com.microservice.store.infrastructure.entities;
 
 import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "store_addresses")
+@EntityListeners(AuditingEntityListener.class)
 public class StoreAddressEntity {
 
     @Id
@@ -25,6 +29,10 @@ public class StoreAddressEntity {
 
     @Column(name = "is_primary")
     private boolean primary;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
     // getters / setters
 
     public Long getId() {
@@ -97,6 +105,14 @@ public class StoreAddressEntity {
 
     public void setPrimary(boolean primary) {
         this.primary = primary;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
 }

@@ -64,6 +64,9 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
         entity.setLogoUrl(store.getLogoUrl());
         entity.setBannerUrl(store.getBannerUrl());
         entity.setDeleted(store.isDeleted());
+        entity.setCreatedAt(store.getCreatedAt());
+        entity.setUpdatedAt(store.getUpdatedAt());
+        entity.setDeletedAt(store.getDeletedAt());
         return entity;
     }
 
@@ -77,6 +80,9 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
         store.setLogoUrl(entity.getLogoUrl());
         store.setBannerUrl(entity.getBannerUrl());
         store.setDeleted(entity.isDeleted());
+        store.setCreatedAt(entity.getCreatedAt());
+        store.setUpdatedAt(entity.getUpdatedAt());
+        store.setDeletedAt(entity.getDeletedAt());
         return store;
     }
 }

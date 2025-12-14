@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: microservice-store
+  cloud:
+    config:
+      enabled: false
+      # If using Config Server, set enabled to true and configure:
+      # uri: http://localhost:8888
+      # fail-fast: true
