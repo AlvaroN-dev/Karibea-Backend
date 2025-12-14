@@ -7,11 +7,11 @@
         <artifactId>Microservices</artifactId>
         <version>1.0-SNAPSHOT</version>
 	</parent>
-	<groupId>com.microservice.card</groupId>
-	<artifactId>microservice-card</artifactId>
+	<groupId>com.microservice.shopcart</groupId>
+	<artifactId>microservice-shopcart</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>microservice-card</name>
-	<description>Spring Boot Microservices Card</description>
+	<name>microservice-shopcart</name>
+	<description>Spring Boot Microservices Shopcart</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -61,6 +61,20 @@
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.7.0</version>
 		</dependency>
 
 		<dependency>
