@@ -1,0 +1,90 @@
+# =====================================================
+# Production Profile - Chatbot Service
+# =====================================================
+spring:
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URI:http://config-server:8888}
+    
+  # Database Configuration - Production
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  # Kafka Configuration - Production
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: chatbot-group-prod
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+
+# Eureka Configuration - Production
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+# AI Provider - Production
+ai:
+  provider: ai21
+
+# Resilience4j - Production (stricter settings)
+resilience4j:
+  circuitbreaker:
+    instances:
+      aiProvider:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: 60s
+        failureRateThreshold: 40
+  ratelimiter:
+    instances:
+      aiProvider:
+        limitForPeriod: 50
+        limitRefreshPeriod: 1m
+
+# Logging - Production (less verbose)
+logging:
+  level:
+    root: WARN
+    com.microservice.chatbot: INFO
+    org.springframework.web: WARN
+
+# CORS Configuration - Production
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# Actuator - Production (restricted)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
