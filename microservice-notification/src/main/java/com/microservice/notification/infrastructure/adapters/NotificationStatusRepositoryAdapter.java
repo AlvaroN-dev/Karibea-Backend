@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,7 +24,7 @@ public class NotificationStatusRepositoryAdapter implements NotificationStatusRe
     }
 
     @Override
-    public Optional<NotificationStatus> findById(Long id) {
+    public Optional<NotificationStatus> findById(UUID id) {
         return jpaNotificationStatusRepository.findById(id).map(mapper::toDomain);
     }
 

@@ -8,16 +8,16 @@ public class NotificationCreatedEvent implements DomainEvent {
     private final UUID eventId;
     private final UUID aggregateId;
     private final LocalDateTime occurredAt;
-    private final Long notificationId;
+    private final UUID notificationId;
     private final String externalUserProfileId;
     private final String channel;
     private final String title;
     private final String message;
 
-    public NotificationCreatedEvent(Long notificationId, String externalUserProfileId,
+    public NotificationCreatedEvent(UUID notificationId, String externalUserProfileId,
             String channel, String title, String message) {
         this.eventId = UUID.randomUUID();
-        this.aggregateId = UUID.randomUUID();
+        this.aggregateId = notificationId != null ? notificationId : UUID.randomUUID();
         this.occurredAt = LocalDateTime.now();
         this.notificationId = notificationId;
         this.externalUserProfileId = externalUserProfileId;
@@ -46,7 +46,7 @@ public class NotificationCreatedEvent implements DomainEvent {
         return aggregateId;
     }
 
-    public Long getNotificationId() {
+    public UUID getNotificationId() {
         return notificationId;
     }
 

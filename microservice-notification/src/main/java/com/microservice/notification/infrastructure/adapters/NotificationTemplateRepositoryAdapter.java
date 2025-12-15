@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -30,7 +31,7 @@ public class NotificationTemplateRepositoryAdapter implements NotificationTempla
     }
 
     @Override
-    public Optional<NotificationTemplate> findById(Long id) {
+    public Optional<NotificationTemplate> findById(UUID id) {
         return jpaNotificationTemplateRepository.findById(id).map(mapper::toDomain);
     }
 
@@ -42,7 +43,7 @@ public class NotificationTemplateRepositoryAdapter implements NotificationTempla
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         jpaNotificationTemplateRepository.deleteById(id);
     }
 }

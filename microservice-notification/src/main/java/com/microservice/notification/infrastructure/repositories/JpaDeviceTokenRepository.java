@@ -6,10 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface JpaDeviceTokenRepository extends JpaRepository<DeviceTokenEntity, Long> {
-    List<DeviceTokenEntity> findByExternalUserId(String externalUserId);
+public interface JpaDeviceTokenRepository extends JpaRepository<DeviceTokenEntity, UUID> {
+    List<DeviceTokenEntity> findByExternalUserId(UUID externalUserId);
 
-    Optional<DeviceTokenEntity> findByExternalUserIdAndDeviceToken(String externalUserId, String deviceToken);
+    Optional<DeviceTokenEntity> findByExternalUserIdAndDeviceToken(UUID externalUserId, String deviceToken);
 }

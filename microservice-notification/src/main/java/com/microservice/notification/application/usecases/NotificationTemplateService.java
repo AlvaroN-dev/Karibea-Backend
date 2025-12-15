@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class NotificationTemplateService
@@ -35,7 +36,7 @@ public class NotificationTemplateService
 
     @Override
     @Transactional
-    public NotificationTemplate update(Long id, NotificationTemplate template) {
+    public NotificationTemplate update(UUID id, NotificationTemplate template) {
         if (template.getUpdatedAt() == null) {
             template.setUpdatedAt(Instant.now());
         }
@@ -45,13 +46,13 @@ public class NotificationTemplateService
 
     @Override
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         notificationTemplateRepositoryPort.deleteById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public NotificationTemplate getById(Long id) {
+    public NotificationTemplate getById(UUID id) {
         return notificationTemplateRepositoryPort.findById(id).orElse(null);
     }
 

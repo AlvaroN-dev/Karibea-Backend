@@ -1,15 +1,17 @@
 package com.microservice.notification.application.dto;
 
+import java.util.UUID;
+
 public class DeviceTokenRequest {
-    private String externalUserId;
+    private UUID externalUserId;
     private String deviceToken;
     private String platform;
 
-    public String getExternalUserId() {
+    public UUID getExternalUserId() {
         return externalUserId;
     }
 
-    public void setExternalUserId(String externalUserId) {
+    public void setExternalUserId(UUID externalUserId) {
         this.externalUserId = externalUserId;
     }
 

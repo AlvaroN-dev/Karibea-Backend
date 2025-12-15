@@ -1,9 +1,10 @@
 package com.microservice.notification.domain.model;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class Notification {
-    private Long id;
+    private UUID id;
     private String externalUserProfileId;
     private NotificationTemplate template;
     private NotificationStatus status;
@@ -35,11 +36,11 @@ public class Notification {
     private Instant updatedAt;
     private Instant deletedAt;
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -226,5 +227,4 @@ public class Notification {
     public void setDeletedAt(Instant deletedAt) {
         this.deletedAt = deletedAt;
     }
-
 }

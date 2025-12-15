@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class NotificationService implements CreateNotificationUseCase, UpdateNotificationUseCase,
@@ -50,13 +51,10 @@ public class NotificationService implements CreateNotificationUseCase, UpdateNot
 
     @Override
     @Transactional
-    public Notification update(Long id, Notification notification) {
+    public Notification update(UUID id, Notification notification) {
         Notification existing = notificationRepositoryPort.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found with id: " + id));
 
-        // Update fields as needed, for now assuming full replacement or mapping handled
-        // outside
-        // But typically we merge. Im simply saving the passed object with ID ensured
         notification.setId(id);
         if (notification.getUpdatedAt() == null) {
             notification.setUpdatedAt(Instant.now());
@@ -66,13 +64,13 @@ public class NotificationService implements CreateNotificationUseCase, UpdateNot
 
     @Override
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         notificationRepositoryPort.deleteById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Notification getById(Long id) {
+    public Notification getById(UUID id) {
         return notificationRepositoryPort.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found with id: " + id));
     }

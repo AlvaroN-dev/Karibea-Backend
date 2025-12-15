@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DeviceTokenService
@@ -35,13 +36,13 @@ public class DeviceTokenService
 
     @Override
     @Transactional(readOnly = true)
-    public List<DeviceToken> listByExternalUserId(String externalUserId) {
+    public List<DeviceToken> listByExternalUserId(UUID externalUserId) {
         return deviceTokenRepositoryPort.findByExternalUserId(externalUserId);
     }
 
     @Override
     @Transactional
-    public void deactivate(Long id) {
+    public void deactivate(UUID id) {
         Optional<DeviceToken> existing = deviceTokenRepositoryPort.findById(id);
         existing.ifPresent(token -> {
             token.setActive(false);

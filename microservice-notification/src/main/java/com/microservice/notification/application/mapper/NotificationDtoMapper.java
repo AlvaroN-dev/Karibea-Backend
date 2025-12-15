@@ -1,8 +1,12 @@
 package com.microservice.notification.application.mapper;
 
 import com.microservice.notification.application.dto.*;
+import com.microservice.notification.application.dto.NotificationResponse.NotificationStatusInfo;
+import com.microservice.notification.application.dto.NotificationResponse.NotificationTemplateInfo;
 import com.microservice.notification.domain.model.DeviceToken;
 import com.microservice.notification.domain.model.Notification;
+import com.microservice.notification.domain.model.NotificationStatus;
+import com.microservice.notification.domain.model.NotificationTemplate;
 import com.microservice.notification.domain.model.UserNotificationPreferences;
 import org.springframework.stereotype.Component;
 
@@ -14,10 +18,6 @@ public class NotificationDtoMapper {
             return null;
         Notification notification = new Notification();
         notification.setExternalUserProfileId(request.getExternalUserProfileId());
-        // template and status handling might require fetching entities, but simple
-        // mapping here
-        // Ideally we pass IDs and let service handle lookup, or map if we have full
-        // objects
         notification.setChannel(request.getChannel());
         notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());
@@ -41,14 +41,46 @@ public class NotificationDtoMapper {
         response.setChannel(domain.getChannel());
         response.setTitle(domain.getTitle());
         response.setMessage(domain.getMessage());
+        response.setRecipientEmail(domain.getRecipientEmail());
+        response.setRecipientPhone(domain.getRecipientPhone());
+        response.setPriority(domain.getPriority());
+        response.setReferenceType(domain.getReferenceType());
+        response.setExternalReferenceId(domain.getExternalReferenceId());
+        response.setActionUrl(domain.getActionUrl());
+        response.setMetadata(domain.getMetadata());
+        
+        // Map embedded status info
         if (domain.getStatus() != null) {
-            response.setStatus(domain.getStatus().getName());
+            response.setStatus(toStatusInfo(domain.getStatus()));
         }
+        
+        // Map embedded template info
+        if (domain.getTemplate() != null) {
+            response.setTemplate(toTemplateInfo(domain.getTemplate()));
+        }
+        
         response.setSentAt(domain.getSentAt());
         response.setDeliveredAt(domain.getDeliveredAt());
         response.setReadAt(domain.getReadAt());
         response.setCreatedAt(domain.getCreatedAt());
         return response;
+    }
+
+    private NotificationStatusInfo toStatusInfo(NotificationStatus status) {
+        NotificationStatusInfo info = new NotificationStatusInfo();
+        info.setId(status.getId());
+        info.setName(status.getName());
+        info.setDescription(status.getDescription());
+        return info;
+    }
+
+    private NotificationTemplateInfo toTemplateInfo(NotificationTemplate template) {
+        NotificationTemplateInfo info = new NotificationTemplateInfo();
+        info.setId(template.getId());
+        info.setCode(template.getCode());
+        info.setName(template.getName());
+        info.setChannel(template.getChannel());
+        return info;
     }
 
     public DeviceToken toDomain(DeviceTokenRequest request) {
@@ -71,6 +103,8 @@ public class NotificationDtoMapper {
         response.setPlatform(domain.getPlatform());
         response.setActive(domain.isActive());
         response.setLastUsedAt(domain.getLastUsedAt());
+        response.setCreatedAt(domain.getCreatedAt());
+        response.setUpdatedAt(domain.getUpdatedAt());
         return response;
     }
 
@@ -102,6 +136,8 @@ public class NotificationDtoMapper {
         response.setQuietHoursStart(domain.getQuietHoursStart());
         response.setQuietHoursEnd(domain.getQuietHoursEnd());
         response.setTimezone(domain.getTimezone());
+        response.setCreatedAt(domain.getCreatedAt());
+        response.setUpdatedAt(domain.getUpdatedAt());
         return response;
     }
 }

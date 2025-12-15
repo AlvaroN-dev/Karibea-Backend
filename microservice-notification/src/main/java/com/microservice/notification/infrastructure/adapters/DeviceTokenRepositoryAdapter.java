@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,14 +30,19 @@ public class DeviceTokenRepositoryAdapter implements DeviceTokenRepositoryPort {
     }
 
     @Override
-    public Optional<DeviceToken> findById(Long id) {
+    public Optional<DeviceToken> findById(UUID id) {
         return jpaDeviceTokenRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public List<DeviceToken> findByExternalUserId(String externalUserId) {
+    public List<DeviceToken> findByExternalUserId(UUID externalUserId) {
         return jpaDeviceTokenRepository.findByExternalUserId(externalUserId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteById(UUID id) {           
+        jpaDeviceTokenRepository.deleteById(id);
     }
 }
