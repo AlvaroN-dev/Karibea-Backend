@@ -1,0 +1,841 @@
+
+# =============================================================================
+# RESOURCE ALLOCATION STRATEGY (12GB RAM, 4 Cores, 8 Logical Processors)
+# =============================================================================
+# Infrastructure (Postgres + Kafka): ~3.5GB RAM
+# Core Services (Config + Eureka + Gateway): ~1.2GB RAM
+# Business Microservices (14 services): ~5.6GB RAM (~400MB each)
+# System Reserve: ~1.7GB RAM
+# Total: ~12GB RAM
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # INFRASTRUCTURE SERVICES
+  # ===========================================================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    command: 
+      - "postgres"
+      - "-c"
+      - "max_connections=300"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2621kB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  kafka-0:
+    image: apache/kafka:4.0.1
+    container_name: kafka-0
+    environment:
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      - KAFKA_NODE_ID=${KAFKA_NODE_ID_1}
+      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
+      - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
+      - KAFKA_HEAP_OPTS=${KAFKA_HEAP_OPTS}
+    ports:
+      - "9094:9092"
+    volumes:
+      - kafka_0_data:/var/lib/kafka/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 384M
+
+  kafka-1:
+    image: apache/kafka:4.0.1
+    container_name: kafka-1
+    environment:
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      - KAFKA_NODE_ID=${KAFKA_NODE_ID_2}
+      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
+      - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
+      - KAFKA_HEAP_OPTS=${KAFKA_HEAP_OPTS}
+    ports:
+      - "9095:9092"
+    volumes:
+      - kafka_1_data:/var/lib/kafka/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 384M
+
+  kafka-2:
+    image: apache/kafka:4.0.1
+    container_name: kafka-2
+    environment:
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      - KAFKA_NODE_ID=${KAFKA_NODE_ID_3}
+      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-2:9092,CONTROLLER://kafka-2:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
+      - KAFKA_HEAP_OPTS=-Xms256m -Xmx512m
+    ports:
+      - "9096:9092"
+    volumes:
+      - kafka_2_data:/var/lib/kafka/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 384M
+
+  kafka-init:
+    image: apache/kafka:4.0.1
+    container_name: kafka-init
+    depends_on:
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+    command: >
+      bash -c "
+      echo 'Waiting for Kafka cluster to be ready...' &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic orders &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic payments &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic inventory &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic notifications &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic shipping &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 1 --partitions 3 --topic products &&
+      echo 'Topics created successfully'
+      "
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ===========================================================================
+  # CORE SERVICES (Config Server + Eureka) - Critical services
+  # ===========================================================================
+  
+  microservice-config:
+    build:
+      context: .
+      dockerfile: microservice-config/Dockerfile
+    container_name: microservice-config
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${SERVER_PORT_CONFIG}
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
+      - EUREKA_CLIENT_FETCH_REGISTRY=${EUREKA_CLIENT_FETCH_REGISTRY}
+      - JAVA_OPTS=-${JAVA_OPTS}
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8888'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          cpus: '0.1'
+          memory: 192M
+
+  microservice-eureka:
+    build:
+      context: .
+      dockerfile: microservice-eureka/Dockerfile
+    container_name: microservice-eureka
+    ports:
+      - "8761:8761"
+    environment:
+      - SERVER_PORT=${SERVER_PORT_EUREKA}
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
+      - EUREKA_CLIENT_FETCH_REGISTRY=${EUREKA_CLIENT_FETCH_REGISTRY}
+      - SPRING_CONFIG_IMPORT=${SPRING_CONFIG_IMPORT}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - EUREKA_SERVER_ENABLE_SELF_PRESERVATION=${EUREKA_SERVER_ENABLE_SELF_PRESERVATION}
+      - EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD=${EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD}
+    networks:
+      - microservices-net
+    depends_on:
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8761'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+
+  # ===========================================================================
+  # API GATEWAY - Depends on Eureka and Config being healthy
+  # ===========================================================================
+  
+  microservice-gateway:
+    build:
+      context: .
+      dockerfile: microservice-gateway/Dockerfile
+    container_name: microservice-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=${SERVER_PORT_GATEWAY}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      - SPRING_CONFIG_IMPORT=${SPRING_CONFIG_IMPORT}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      - JAVA_OPTS=${JAVA_OPTS}
+      # Resilience settings for when Eureka is temporarily unavailable
+      - EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS=${EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS}
+      - EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS=${EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS}
+      - EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS=${EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS}
+    networks:
+      - microservices-net
+    depends_on:
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 384M
+        reservations:
+          cpus: '0.15'
+          memory: 192M
+
+  # ===========================================================================
+  # BUSINESS MICROSERVICES - Common configuration with resilience
+  # ===========================================================================
+  
+  microservice-catalog:
+    build:
+      context: .
+      dockerfile: microservice-catalog/Dockerfile
+    container_name: microservice-catalog
+    environment: &common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CATALOG}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      JAVA_OPTS: ${JAVA_OPTS}
+      # HikariCP Connection Pool Configuration
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT}
+      SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT}
+      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME}
+      # Resilience settings - tolerate Config/Eureka restarts
+      SPRING_CLOUD_CONFIG_FAIL_FAST: ${SPRING_CLOUD_CONFIG_FAIL_FAST}
+      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: ${SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL}
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: ${SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS}
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: ${EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS}
+      EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS: ${EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS}
+      EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS: ${EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-chatbot:
+    build:
+      context: .
+      dockerfile: microservice-chatbot/Dockerfile
+    container_name: microservice-chatbot
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CHATBOT}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-shopcart:
+    build:
+      context: .
+      dockerfile: microservice-shopcart/Dockerfile
+    container_name: microservice-shopcart
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHOPCART}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-identity:
+    build:
+      context: .
+      dockerfile: microservice-identity/Dockerfile
+    container_name: microservice-identity
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_IDENTITY}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-inventory:
+    build:
+      context: .
+      dockerfile: microservice-inventory/Dockerfile
+    container_name: microservice-inventory
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_INVENTORY}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-marketing:
+    build:
+      context: .
+      dockerfile: microservice-marketing/Dockerfile
+    container_name: microservice-marketing
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_MARKETING}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-notification:
+    build:
+      context: .
+      dockerfile: microservice-notification/Dockerfile
+    container_name: microservice-notification
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_NOTIFICATION}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-order:
+    build:
+      context: .
+      dockerfile: microservice-order/Dockerfile
+    container_name: microservice-order
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_ORDER}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-payment:
+    build:
+      context: .
+      dockerfile: microservice-payment/Dockerfile
+    container_name: microservice-payment
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PAYMENT}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-review:
+    build:
+      context: .
+      dockerfile: microservice-review/Dockerfile
+    container_name: microservice-review
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_REVIEW}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-search:
+    build:
+      context: .
+      dockerfile: microservice-search/Dockerfile
+    container_name: microservice-search
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SEARCH}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-shipping:
+    build:
+      context: .
+      dockerfile: microservice-shipping/Dockerfile
+    container_name: microservice-shipping
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHIPPING}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-store:
+    build:
+      context: .
+      dockerfile: microservice-store/Dockerfile
+    container_name: microservice-store
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_STORE}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  microservice-user:
+    build:
+      context: .
+      dockerfile: microservice-user/Dockerfile
+    container_name: microservice-user
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_USER}
+    networks:
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 400M
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  kafka_0_data:
+  kafka_1_data:
+  kafka_2_data:
