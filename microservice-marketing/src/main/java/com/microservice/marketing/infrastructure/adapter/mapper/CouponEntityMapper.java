@@ -8,12 +8,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class CouponEntityMapper {
 
+    private final PromotionEntityMapper promotionMapper;
+
+    public CouponEntityMapper(PromotionEntityMapper promotionMapper) {
+        this.promotionMapper = promotionMapper;
+    }
+
     public Coupon toDomain(CouponEntity entity) {
         if (entity == null)
             return null;
         return new Coupon(
                 entity.getId(),
                 entity.getPromotion() != null ? entity.getPromotion().getId() : null,
+                entity.getPromotion() != null ? promotionMapper.toDomain(entity.getPromotion()) : null,
                 entity.getCode(),
                 entity.getUsageLimit(),
                 entity.getUsageCount(),
@@ -31,7 +38,9 @@ public class CouponEntityMapper {
         CouponEntity entity = new CouponEntity();
         entity.setId(domain.getId());
 
-        if (domain.getPromotionId() != null) {
+        if (domain.getPromotion() != null) {
+            entity.setPromotion(promotionMapper.toEntity(domain.getPromotion()));
+        } else if (domain.getPromotionId() != null) {
             PromotionEntity promo = new PromotionEntity();
             promo.setId(domain.getPromotionId());
             entity.setPromotion(promo);

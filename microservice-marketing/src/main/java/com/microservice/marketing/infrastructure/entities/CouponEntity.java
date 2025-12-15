@@ -1,6 +1,7 @@
 package com.microservice.marketing.infrastructure.entities;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import java.time.LocalDateTime;
 
 @Entity
@@ -8,8 +9,8 @@ import java.time.LocalDateTime;
 public class CouponEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "promotion_id")
@@ -55,11 +56,11 @@ public class CouponEntity {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

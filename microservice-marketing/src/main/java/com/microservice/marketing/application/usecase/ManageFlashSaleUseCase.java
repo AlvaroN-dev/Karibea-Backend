@@ -3,6 +3,7 @@ package com.microservice.marketing.application.usecase;
 import com.microservice.marketing.domain.model.FlashSale;
 import com.microservice.marketing.domain.port.FlashSaleRepositoryPort;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class ManageFlashSaleUseCase {
     }
 
     @Transactional
-    public FlashSale updateFlashSale(Long id, FlashSale flashSale) {
+    public FlashSale updateFlashSale(UUID id, FlashSale flashSale) {
         if (flashSaleRepository.findById(id).isEmpty()) {
             throw new RuntimeException("FlashSale not found with id: " + id);
         }
@@ -31,7 +32,7 @@ public class ManageFlashSaleUseCase {
     }
 
     @Transactional(readOnly = true)
-    public FlashSale getFlashSale(Long id) {
+    public FlashSale getFlashSale(UUID id) {
         return flashSaleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("FlashSale not found with id: " + id));
     }
@@ -42,7 +43,7 @@ public class ManageFlashSaleUseCase {
     }
 
     @Transactional
-    public void deleteFlashSale(Long id) {
+    public void deleteFlashSale(UUID id) {
         flashSaleRepository.deleteById(id);
     }
 

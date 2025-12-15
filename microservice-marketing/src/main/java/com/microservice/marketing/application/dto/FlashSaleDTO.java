@@ -2,9 +2,10 @@ package com.microservice.marketing.application.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public record FlashSaleDTO(
-        Long id,
+        UUID id,
         String name,
         String description,
         String bannerUrl,

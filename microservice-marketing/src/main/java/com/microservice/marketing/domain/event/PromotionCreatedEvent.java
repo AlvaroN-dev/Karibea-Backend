@@ -1,16 +1,18 @@
 package com.microservice.marketing.domain.event;
 
+import java.util.UUID;
+
 public class PromotionCreatedEvent extends DomainEvent {
-    private final Long promotionId;
+    private final UUID promotionId;
     private final String name;
 
-    public PromotionCreatedEvent(Long promotionId, String name) {
+    public PromotionCreatedEvent(UUID promotionId, String name) {
         super("PromotionCreatedEvent");
         this.promotionId = promotionId;
         this.name = name;
     }
 
-    public Long getPromotionId() {
+    public UUID getPromotionId() {
         return promotionId;
     }
 

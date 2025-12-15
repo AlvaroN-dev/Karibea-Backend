@@ -1,10 +1,11 @@
 package com.microservice.marketing.application.dto;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record CouponDTO(
-        Long id,
-        Long promotionId,
+        UUID id,
+        PromotionDTO promotion,
         String code,
         Integer usageLimit,
         Integer usageCount,

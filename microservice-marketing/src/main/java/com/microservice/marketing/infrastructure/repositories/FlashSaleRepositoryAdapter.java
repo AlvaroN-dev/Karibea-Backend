@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,7 +30,7 @@ public class FlashSaleRepositoryAdapter implements FlashSaleRepositoryPort {
     }
 
     @Override
-    public Optional<FlashSale> findById(Long id) {
+    public Optional<FlashSale> findById(UUID id) {
         return jpaFlashSaleRepository.findById(id).map(mapper::toDomain);
     }
 
@@ -41,7 +42,7 @@ public class FlashSaleRepositoryAdapter implements FlashSaleRepositoryPort {
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         jpaFlashSaleRepository.deleteById(id);
     }
 }

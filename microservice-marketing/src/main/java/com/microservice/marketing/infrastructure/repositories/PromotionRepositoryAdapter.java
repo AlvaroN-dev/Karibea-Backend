@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,7 +30,7 @@ public class PromotionRepositoryAdapter implements PromotionRepositoryPort {
     }
 
     @Override
-    public Optional<Promotion> findById(Long id) {
+    public Optional<Promotion> findById(UUID id) {
         return jpaPromotionRepository.findById(id).map(mapper::toDomain);
     }
 
@@ -41,7 +42,7 @@ public class PromotionRepositoryAdapter implements PromotionRepositoryPort {
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         jpaPromotionRepository.deleteById(id);
     }
 }

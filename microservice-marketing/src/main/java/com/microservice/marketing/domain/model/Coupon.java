@@ -1,10 +1,14 @@
 package com.microservice.marketing.domain.model;
 
 import java.time.LocalDateTime;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import com.microservice.marketing.domain.model.Promotion;
 
 public class Coupon {
-    private Long id;
-    private Long promotionId;
+    private UUID id;
+    private UUID promotionId;
+    private Promotion promotion;
     private String code;
     private Integer usageLimit;
     private Integer usageCount;
@@ -18,11 +22,12 @@ public class Coupon {
     public Coupon() {
     }
 
-    public Coupon(Long id, Long promotionId, String code, Integer usageLimit, Integer usageCount, Integer perUserLimit,
+    public Coupon(UUID id, UUID promotionId, Promotion promotion, String code, Integer usageLimit, Integer usageCount, Integer perUserLimit,
             LocalDateTime startedAt, LocalDateTime endedAt, Boolean isActive, LocalDateTime createdAt,
             LocalDateTime updatedAt) {
         this.id = id;
         this.promotionId = promotionId;
+        this.promotion = promotion;
         this.code = code;
         this.usageLimit = usageLimit;
         this.usageCount = usageCount;
@@ -36,20 +41,28 @@ public class Coupon {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getPromotionId() {
+    public UUID getPromotionId() {
         return promotionId;
     }
 
-    public void setPromotionId(Long promotionId) {
+    public void setPromotionId(UUID promotionId) {
         this.promotionId = promotionId;
+    }
+
+    public Promotion getPromotion() {
+        return promotion;
+    }
+
+    public void setPromotion(Promotion promotion) {
+        this.promotion = promotion;
     }
 
     public String getCode() {

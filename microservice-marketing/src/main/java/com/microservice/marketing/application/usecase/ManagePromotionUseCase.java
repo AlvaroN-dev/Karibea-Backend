@@ -3,6 +3,7 @@ package com.microservice.marketing.application.usecase;
 import com.microservice.marketing.domain.model.Promotion;
 import com.microservice.marketing.domain.port.PromotionRepositoryPort;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -28,7 +29,7 @@ public class ManagePromotionUseCase {
     }
 
     @Transactional
-    public Promotion updatePromotion(Long id, Promotion promotion) {
+    public Promotion updatePromotion(UUID id, Promotion promotion) {
         if (promotionRepository.findById(id).isEmpty()) {
             throw new RuntimeException("Promotion not found with id: " + id);
         }
@@ -37,7 +38,7 @@ public class ManagePromotionUseCase {
     }
 
     @Transactional(readOnly = true)
-    public Promotion getPromotion(Long id) {
+    public Promotion getPromotion(UUID id) {
         return promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Promotion not found with id: " + id));
     }
@@ -48,7 +49,7 @@ public class ManagePromotionUseCase {
     }
 
     @Transactional
-    public void deletePromotion(Long id) {
+    public void deletePromotion(UUID id) {
         promotionRepository.deleteById(id);
     }
 }

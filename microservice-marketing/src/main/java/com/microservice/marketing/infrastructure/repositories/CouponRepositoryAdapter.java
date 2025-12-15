@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,7 +30,7 @@ public class CouponRepositoryAdapter implements CouponRepositoryPort {
     }
 
     @Override
-    public Optional<Coupon> findById(Long id) {
+    public Optional<Coupon> findById(UUID id) {
         return jpaCouponRepository.findById(id).map(mapper::toDomain);
     }
 
@@ -46,7 +47,7 @@ public class CouponRepositoryAdapter implements CouponRepositoryPort {
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         jpaCouponRepository.deleteById(id);
     }
 }

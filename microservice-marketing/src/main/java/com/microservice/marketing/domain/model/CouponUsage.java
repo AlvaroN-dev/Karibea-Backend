@@ -2,10 +2,11 @@ package com.microservice.marketing.domain.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class CouponUsage {
-    private Long id;
-    private Long couponId;
+    private UUID id;
+    private UUID couponId;
     private String externalUserProfileId;
     private String externalOrderId;
     private BigDecimal discountAmount;
@@ -14,7 +15,7 @@ public class CouponUsage {
     public CouponUsage() {
     }
 
-    public CouponUsage(Long id, Long couponId, String externalUserProfileId, String externalOrderId,
+    public CouponUsage(UUID id, UUID couponId, String externalUserProfileId, String externalOrderId,
             BigDecimal discountAmount, LocalDateTime usedAt) {
         this.id = id;
         this.couponId = couponId;
@@ -26,19 +27,19 @@ public class CouponUsage {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getCouponId() {
+    public UUID getCouponId() {
         return couponId;
     }
 
-    public void setCouponId(Long couponId) {
+    public void setCouponId(UUID couponId) {
         this.couponId = couponId;
     }
 

@@ -1,10 +1,11 @@
 package com.microservice.marketing.domain.model;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class FlashSaleProduct {
-    private Long id;
-    private Long flashSaleId;
+    private UUID id;
+    private UUID flashSaleId;
     private String externalProductId;
     private BigDecimal salePrice;
     private Integer quantityLimit;
@@ -13,7 +14,7 @@ public class FlashSaleProduct {
     public FlashSaleProduct() {
     }
 
-    public FlashSaleProduct(Long id, Long flashSaleId, String externalProductId, BigDecimal salePrice,
+    public FlashSaleProduct(UUID id, UUID flashSaleId, String externalProductId, BigDecimal salePrice,
             Integer quantityLimit, Integer quantitySold) {
         this.id = id;
         this.flashSaleId = flashSaleId;
@@ -25,19 +26,19 @@ public class FlashSaleProduct {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getFlashSaleId() {
+    public UUID getFlashSaleId() {
         return flashSaleId;
     }
 
-    public void setFlashSaleId(Long flashSaleId) {
+    public void setFlashSaleId(UUID flashSaleId) {
         this.flashSaleId = flashSaleId;
     }
 

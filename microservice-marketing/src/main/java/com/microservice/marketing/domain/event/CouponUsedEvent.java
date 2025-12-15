@@ -1,14 +1,15 @@
 package com.microservice.marketing.domain.event;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class CouponUsedEvent extends DomainEvent {
-    private final Long couponId;
+    private final UUID couponId;
     private final String externalUserProfileId;
     private final String externalOrderId;
     private final BigDecimal discountAmount;
 
-    public CouponUsedEvent(Long couponId, String externalUserProfileId, String externalOrderId,
+    public CouponUsedEvent(UUID couponId, String externalUserProfileId, String externalOrderId,
             BigDecimal discountAmount) {
         super("CouponUsedEvent");
         this.couponId = couponId;
@@ -17,7 +18,7 @@ public class CouponUsedEvent extends DomainEvent {
         this.discountAmount = discountAmount;
     }
 
-    public Long getCouponId() {
+    public UUID getCouponId() {
         return couponId;
     }
 

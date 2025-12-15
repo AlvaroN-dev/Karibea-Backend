@@ -35,7 +35,7 @@ public class ManageCouponUseCase {
     }
 
     @Transactional(readOnly = true)
-    public Coupon getCoupon(Long id) {
+    public Coupon getCoupon(UUID id) {
         return couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon not found with id: " + id));
     }
@@ -47,7 +47,7 @@ public class ManageCouponUseCase {
     }
 
     @Transactional
-    public void deleteCoupon(Long id) {
+    public void deleteCoupon(UUID id) {
         couponRepository.deleteById(id);
     }
 

@@ -1,6 +1,7 @@
 package com.microservice.marketing.infrastructure.entities;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import java.math.BigDecimal;
 
 @Entity
@@ -8,8 +9,8 @@ import java.math.BigDecimal;
 public class FlashSaleProductEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flash_sale_id")
@@ -29,11 +30,11 @@ public class FlashSaleProductEntity {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

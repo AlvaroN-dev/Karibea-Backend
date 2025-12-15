@@ -7,6 +7,7 @@ import com.microservice.marketing.infrastructure.entities.CouponUsageEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,7 +30,7 @@ public class CouponUsageRepositoryAdapter implements CouponUsageRepositoryPort {
     }
 
     @Override
-    public List<CouponUsage> findByCouponId(Long couponId) {
+    public List<CouponUsage> findByCouponId(UUID couponId) {
         return jpaCouponUsageRepository.findByCouponId(couponId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());

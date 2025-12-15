@@ -2,9 +2,10 @@ package com.microservice.marketing.domain.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class FlashSale {
-    private Long id;
+    private UUID id;
     private String name;
     private String description;
     private String bannerUrl;
@@ -17,7 +18,7 @@ public class FlashSale {
     public FlashSale() {
     }
 
-    public FlashSale(Long id, String name, String description, String bannerUrl, LocalDateTime startedAt,
+    public FlashSale(UUID id, String name, String description, String bannerUrl, LocalDateTime startedAt,
             LocalDateTime endedAt, Boolean isActive, LocalDateTime createdAt, List<FlashSaleProduct> products) {
         this.id = id;
         this.name = name;
@@ -32,11 +33,11 @@ public class FlashSale {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

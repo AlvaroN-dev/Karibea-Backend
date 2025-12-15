@@ -2,9 +2,10 @@ package com.microservice.marketing.application.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record PromotionDTO(
-        Long id,
+        UUID id,
         String name,
         String description,
         String promotionType,

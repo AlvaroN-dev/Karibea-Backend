@@ -1,6 +1,7 @@
 package com.microservice.marketing.infrastructure.entities;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,8 +10,8 @@ import java.util.List;
 public class FlashSaleEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(length = 200)
     private String name;
@@ -43,11 +44,11 @@ public class FlashSaleEntity {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

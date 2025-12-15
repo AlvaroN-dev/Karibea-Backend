@@ -2,9 +2,10 @@ package com.microservice.marketing.domain.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class Promotion {
-    private Long id;
+    private UUID id;
     private String name;
     private String description;
     private String promotionType;
@@ -27,7 +28,7 @@ public class Promotion {
     public Promotion() {
     }
 
-    public Promotion(Long id, String name, String description, String promotionType, BigDecimal discountValue,
+    public Promotion(UUID id, String name, String description, String promotionType, BigDecimal discountValue,
             BigDecimal maxDiscountAmount, BigDecimal minPurchaseAmount, String appliesTo,
             String externalApplicableProductId, String externalApplicableCategoryId,
             String externalApplicableStoreId, Integer usageLimit, Integer usageCount, Integer perUserLimit,
@@ -56,11 +57,11 @@ public class Promotion {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
