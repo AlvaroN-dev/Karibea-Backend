@@ -126,33 +126,33 @@ public class OrderMapper {
     public CreateOrderPort.CreateOrderCommand toCommand(CreateOrderRequest request, String ipAddress,
             String userAgent) {
         return new CreateOrderPort.CreateOrderCommand(
-                request.customerId(),
-                request.storeId(),
-                request.currency(),
-                request.shippingAddress().street(),
-                request.shippingAddress().city(),
-                request.shippingAddress().state(),
-                request.shippingAddress().zipCode(),
-                request.shippingAddress().country(),
-                request.billingAddress() != null ? request.billingAddress().street() : null,
-                request.billingAddress() != null ? request.billingAddress().city() : null,
-                request.billingAddress() != null ? request.billingAddress().state() : null,
-                request.billingAddress() != null ? request.billingAddress().zipCode() : null,
-                request.billingAddress() != null ? request.billingAddress().country() : null,
-                request.items().stream().map(this::toItemCommand).toList(),
-                request.customerNotes(),
+                request.getCustomerId(),
+                request.getStoreId(),
+                request.getCurrency(),
+                request.getShippingAddress().getStreet(),
+                request.getShippingAddress().getCity(),
+                request.getShippingAddress().getState(),
+                request.getShippingAddress().getZipCode(),
+                request.getShippingAddress().getCountry(),
+                request.getBillingAddress() != null ? request.getBillingAddress().getStreet() : null,
+                request.getBillingAddress() != null ? request.getBillingAddress().getCity() : null,
+                request.getBillingAddress() != null ? request.getBillingAddress().getState() : null,
+                request.getBillingAddress() != null ? request.getBillingAddress().getZipCode() : null,
+                request.getBillingAddress() != null ? request.getBillingAddress().getCountry() : null,
+                request.getItems().stream().map(this::toItemCommand).toList(),
+                request.getCustomerNotes(),
                 ipAddress,
                 userAgent);
     }
 
     private CreateOrderPort.OrderItemCommand toItemCommand(CreateOrderRequest.OrderItemRequest item) {
         return new CreateOrderPort.OrderItemCommand(
-                item.productId(),
-                item.productName(),
-                item.variantName(),
-                item.sku(),
-                item.imageUrl(),
-                item.unitPrice(),
-                item.quantity());
+                item.getProductId(),
+                item.getProductName(),
+                item.getVariantName(),
+                item.getSku(),
+                item.getImageUrl(),
+                item.getUnitPrice(),
+                item.getQuantity());
     }
 }

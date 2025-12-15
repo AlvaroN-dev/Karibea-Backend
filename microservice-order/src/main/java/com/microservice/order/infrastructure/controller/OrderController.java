@@ -76,7 +76,7 @@ public class OrderController {
             HttpServletRequest httpRequest,
             @AuthenticationPrincipal Jwt jwt) {
 
-        log.info("Creating order for customer: {}", request.customerId());
+        log.info("Creating order for customer: {}", request.getCustomerId());
 
         String ipAddress = httpRequest.getRemoteAddr();
         String userAgent = httpRequest.getHeader("User-Agent");
@@ -215,7 +215,7 @@ public class OrderController {
 
         cancelOrderPort.execute(new CancelOrderPort.CancelOrderCommand(
                 orderId,
-                request.reason(),
+                request.getReason(),
                 cancelledBy));
 
         return ResponseEntity.noContent().build();
@@ -274,16 +274,16 @@ public class OrderController {
             @Valid @RequestBody ChangeOrderStatusRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        log.info("Changing order {} status to: {}", orderId, request.newStatus());
+        log.info("Changing order {} status to: {}", orderId, request.getNewStatus());
 
         String changedBy = jwt != null ? jwt.getSubject() : "system";
 
         changeOrderStatusPort.execute(new ChangeOrderStatusPort.ChangeOrderStatusCommand(
                 orderId,
-                request.newStatus(),
-                request.reason(),
+                request.getNewStatus(),
+                request.getReason(),
                 changedBy,
-                request.relatedEntityId()));
+                request.getRelatedEntityId()));
 
         return ResponseEntity.noContent().build();
     }
