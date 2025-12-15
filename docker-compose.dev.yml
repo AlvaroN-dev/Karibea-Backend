@@ -1,4 +1,3 @@
-version: '3.8'
 
 # =============================================================================
 # RESOURCE ALLOCATION STRATEGY (12GB RAM, 4 Cores, 8 Logical Processors)
@@ -21,6 +20,32 @@ services:
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    command: 
+      - "postgres"
+      - "-c"
+      - "max_connections=300"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2621kB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
     ports:
       - "5432:5432"
     volumes:
@@ -310,6 +335,12 @@ services:
       SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       JAVA_OPTS: ${JAVA_OPTS}
+      # HikariCP Connection Pool Configuration
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT}
+      SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT}
+      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME}
       # Resilience settings - tolerate Config/Eureka restarts
       SPRING_CLOUD_CONFIG_FAIL_FAST: ${SPRING_CLOUD_CONFIG_FAIL_FAST}
       SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: ${SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL}
@@ -379,14 +410,14 @@ services:
           cpus: '0.1'
           memory: 200M
 
-  microservice-card:
+  microservice-shopcart:
     build:
       context: .
-      dockerfile: microservice-card/Dockerfile
-    container_name: microservice-card
+      dockerfile: microservice-shopcart/Dockerfile
+    container_name: microservice-shopcart
     environment:
       <<: *common-env
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CARD}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHOPCART}
     networks:
       - microservices-net
     depends_on:

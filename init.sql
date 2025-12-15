@@ -1,4 +1,3 @@
-CREATE DATABASE card_db;
 CREATE DATABASE catalog_db;
 CREATE DATABASE chatbot_db;
 CREATE DATABASE identity_db;
@@ -10,5 +9,6 @@ CREATE DATABASE payment_db;
 CREATE DATABASE review_db;
 CREATE DATABASE search_db;
 CREATE DATABASE shipping_db;
+CREATE DATABASE shopcart_db;
 CREATE DATABASE store_db;
 CREATE DATABASE user_db;

@@ -1,0 +1,63 @@
+# Test configuration for microservice-payment
+# Uses H2 in-memory database for isolated testing
+
+spring:
+  application:
+    name: microservice-payment-test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    # Disable Kafka for tests
+    listener:
+      auto-startup: false
+    producer:
+      properties:
+        max.block.ms: 100
+    consumer:
+      auto-startup: false
+  
+  # Disable OAuth2 for tests
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/test
+  
+  # Disable Config Server for tests
+  config:
+    import: "optional:configserver:"
+  
+  h2:
+    console:
+      enabled: true
+  
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+# Disable Eureka for tests
+eureka:
+  client:
+    enabled: false
+
+# Logging
+logging:
+  level:
+    com.microservice.payment: DEBUG
+    org.springframework: WARN
+    org.hibernate: WARN

@@ -1,3 +1,107 @@
 spring:
   application:
+    name: microservice-shopcart
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/karibea_shopcart
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: public
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: shopcart-service
+      auto-offset-reset: earliest
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8180/realms/karibea}
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8180/realms/karibea/protocol/openid-connect/certs}
+
+  # Cloud Config
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
+
+# Server Configuration
+server:
+  port: 8085
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+# External Services Configuration
+services:
+  catalog:
+    url: ${CATALOG_SERVICE_URL:http://localhost:8081}
+  marketing:
+    url: ${MARKETING_SERVICE_URL:http://localhost:8082}
+  user:
+    url: ${USER_SERVICE_URL:http://localhost:8083}
+  store:
+    url: ${STORE_SERVICE_URL:http://localhost:8084}
+
+# Kafka Topics
+kafka:
+  topic:
+    prefix: shopping-cart
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Logging Configuration
+logging:
+  level:
+    com.microservice.shopcart: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
     name: microservice-card
