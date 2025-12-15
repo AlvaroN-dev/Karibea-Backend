@@ -104,3 +104,4 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
+    name: microservice-card
