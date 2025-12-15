@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -26,7 +27,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/v1/products")
-@Tag(name = "Products", description = "Product management API")
+@Tag(name = "Products", description = "Product management API - CRUD operations for products and variants")
 public class ProductController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductController.class);
@@ -59,10 +60,15 @@ public class ProductController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a new product", description = "Creates a new product with the provided information")
+    @Operation(
+            summary = "Create a new product",
+            description = "Creates a new product with the provided information. Requires authentication.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Product created successfully", content = @Content(schema = @Schema(implementation = ProductResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
             @ApiResponse(responseCode = "409", description = "Product with same SKU already exists")
     })
     public ResponseEntity<ProductResponse> createProduct(
@@ -127,9 +133,14 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update product", description = "Updates an existing product")
+    @Operation(
+            summary = "Update product",
+            description = "Updates an existing product. Requires authentication.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Product updated successfully", content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
             @ApiResponse(responseCode = "404", description = "Product not found"),
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
@@ -155,9 +166,14 @@ public class ProductController {
     }
 
     @PostMapping("/{id}/publish")
-    @Operation(summary = "Publish product", description = "Publishes a product, making it visible to customers")
+    @Operation(
+            summary = "Publish product",
+            description = "Publishes a product, making it visible to customers. Requires authentication.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Product published successfully", content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
             @ApiResponse(responseCode = "404", description = "Product not found"),
             @ApiResponse(responseCode = "400", description = "Cannot publish product without variants")
     })
@@ -172,9 +188,14 @@ public class ProductController {
     }
 
     @PostMapping("/{id}/deactivate")
-    @Operation(summary = "Deactivate product", description = "Deactivates a product, removing it from the storefront")
+    @Operation(
+            summary = "Deactivate product",
+            description = "Deactivates a product, removing it from the storefront. Requires authentication.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Product deactivated successfully", content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
     public ResponseEntity<ProductResponse> deactivateProduct(
@@ -188,9 +209,14 @@ public class ProductController {
     }
 
     @PostMapping("/{id}/variants")
-    @Operation(summary = "Add variant to product", description = "Adds a new variant to an existing product")
+    @Operation(
+            summary = "Add variant to product",
+            description = "Adds a new variant to an existing product. Requires authentication.",
+            security = @SecurityRequirement(name = "bearer-jwt")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Variant added successfully", content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
             @ApiResponse(responseCode = "404", description = "Product not found"),
             @ApiResponse(responseCode = "400", description = "Invalid variant data or duplicate SKU")
     })
