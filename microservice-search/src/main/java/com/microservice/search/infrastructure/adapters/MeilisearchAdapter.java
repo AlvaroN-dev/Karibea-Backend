@@ -149,7 +149,6 @@ public class MeilisearchAdapter implements SearchEnginePort {
         return doc;
     }
 
-    @SuppressWarnings("unchecked")
     private List<SearchableProduct> mapToProducts(ArrayList<HashMap<String, Object>> hits) {
         return hits.stream()
                 .map(this::mapToProduct)

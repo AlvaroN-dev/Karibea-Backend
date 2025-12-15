@@ -2,7 +2,6 @@ package com.microservice.search.infrastructure.kafka.consumer;
 
 import com.microservice.search.application.dto.CatalogProductDTO;
 import com.microservice.search.application.mapper.ProductMapper;
-import com.microservice.search.domain.models.ProductId;
 import com.microservice.search.domain.models.SearchableProduct;
 import com.microservice.search.domain.port.in.IndexProductUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
