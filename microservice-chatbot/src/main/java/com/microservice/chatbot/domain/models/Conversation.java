@@ -33,6 +33,13 @@ public class Conversation {
     private LocalDateTime deletedAt;
     private boolean deleted;
 
+    // Enriched data (transient)
+    private UserInfo userInfo;
+
+    public void setUserInfo(UserInfo userInfo) {
+        this.userInfo = userInfo;
+    }
+
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
 

@@ -20,6 +20,7 @@ public interface ConversationMapper {
     @Mapping(target = "status", source = ".", qualifiedByName = "mapStatus")
     @Mapping(target = "messageCount", expression = "java(conversation.getMessages() != null ? conversation.getMessages().size() : 0)")
     @Mapping(target = "messages", source = "messages", qualifiedByName = "mapMessages")
+    @Mapping(target = "userInfo", source = "userInfo")
     ConversationResponse toResponse(Conversation conversation);
 
     @Named("mapStatus")

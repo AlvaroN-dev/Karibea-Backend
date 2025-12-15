@@ -30,6 +30,9 @@ public class ConversationResponse {
     private List<MessageResponse> messages;
     private int messageCount;
 
+    // Enriched user information from Identity microservice
+    private UserInfoResponse userInfo;
+
     /**
      * Message response nested DTO.
      */

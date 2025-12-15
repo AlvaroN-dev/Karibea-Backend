@@ -133,6 +133,11 @@ Retrieves a conversation with its complete message history.
   "endedAt": null,
   "createdAt": "2024-12-13T10:30:00",
   "messageCount": 4,
+  "userInfo": {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "username": "juan.perez",
+    "email": "juan.perez@example.com"
+  },
   "messages": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440020",
@@ -169,6 +174,10 @@ Retrieves a conversation with its complete message history.
 | endedAt | datetime | Conversation end time (null if active) |
 | createdAt | datetime | Record creation timestamp |
 | messageCount | integer | Total number of messages |
+| userInfo | object | User details from Identity service |
+| userInfo.id | UUID | User unique identifier |
+| userInfo.username | string | Username |
+| userInfo.email | string | User email address |
 | messages | array | List of messages in chronological order |
 
 **Message Fields:**

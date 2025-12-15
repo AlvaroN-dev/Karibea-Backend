@@ -17,9 +17,18 @@ import java.util.UUID;
 public class GetConversationUseCaseImpl implements GetConversationUseCase {
 
     private final ChatOrchestrationService chatOrchestrationService;
+    private final com.microservice.chatbot.domain.port.out.ExternalUserServicePort externalUserServicePort;
 
     @Override
     public Conversation getConversation(UUID conversationId) {
-        return chatOrchestrationService.getConversation(conversationId);
+        Conversation conversation = chatOrchestrationService.getConversation(conversationId);
+
+        // Enrich with user info
+        if (conversation.getExternalUserProfileId() != null) {
+            com.microservice.chatbot.domain.models.UserInfo userInfo = externalUserServicePort
+                    .getUserOrFallback(conversation.getExternalUserProfileId());
+            conversation.setUserInfo(userInfo);
+        }
+        return conversation;
     }
 }
