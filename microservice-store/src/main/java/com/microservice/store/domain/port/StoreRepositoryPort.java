@@ -4,18 +4,19 @@ import com.microservice.store.domain.models.Store;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface StoreRepositoryPort {
 
     Store save(Store store);
 
-    Optional<Store> findById(Long id);
+    Optional<Store> findById(UUID id);
 
-    Optional<Store> findByExternalOwnerUserId(String externalOwnerUserId);
+    Optional<Store> findByExternalOwnerUserId(UUID externalOwnerUserId);
 
     List<Store> findAllActive();
 
     Store update(Store store);
 
-    void softDelete(Long id);
+    void softDelete(UUID id);
 }

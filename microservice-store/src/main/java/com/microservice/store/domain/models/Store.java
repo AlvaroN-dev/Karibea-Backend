@@ -2,11 +2,12 @@ package com.microservice.store.domain.models;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class Store {
 
-    private Long id;
-    private String externalOwnerUserId;
+    private UUID id;
+    private UUID externalOwnerUserId;
     private String name;
     private String description;
     private String email;
@@ -26,19 +27,19 @@ public class Store {
     private StoreSettings settings;
 
     // getters / setters
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public String getExternalOwnerUserId() {
+    public UUID getExternalOwnerUserId() {
         return externalOwnerUserId;
     }
 
-    public void setExternalOwnerUserId(String externalOwnerUserId) {
+    public void setExternalOwnerUserId(UUID externalOwnerUserId) {
         this.externalOwnerUserId = externalOwnerUserId;
     }
 

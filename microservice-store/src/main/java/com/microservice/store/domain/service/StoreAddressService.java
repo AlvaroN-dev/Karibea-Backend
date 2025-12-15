@@ -4,6 +4,7 @@ import com.microservice.store.domain.models.StoreAddress;
 import com.microservice.store.domain.port.StoreAddressRepositoryPort;
 
 import java.util.List;
+import java.util.UUID;
 
 public class StoreAddressService {
 
@@ -17,11 +18,11 @@ public class StoreAddressService {
         return repository.save(address);
     }
 
-    public List<StoreAddress> getAllByStoreId(Long storeId) {
+    public List<StoreAddress> getAllByStoreId(UUID storeId) {
         return repository.findByStoreId(storeId);
     }
 
-    public void delete(Long id) {
+    public void delete(UUID id) {
         repository.delete(id);
     }
 }

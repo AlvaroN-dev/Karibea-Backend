@@ -2,6 +2,7 @@ package com.microservice.store.application.usecases;
 
 import com.microservice.store.domain.models.StoreSettings;
 import com.microservice.store.domain.service.StoreSettingsService;
+import java.util.UUID;
 
 public class GetStoreSettingsUseCase {
 
@@ -11,7 +12,7 @@ public class GetStoreSettingsUseCase {
         this.service = service;
     }
 
-    public StoreSettings execute(Long storeId) {
+    public StoreSettings execute(UUID storeId) {
         return service.getByStoreId(storeId);
     }
 }

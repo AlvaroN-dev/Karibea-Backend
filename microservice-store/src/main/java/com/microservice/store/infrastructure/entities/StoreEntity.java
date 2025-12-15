@@ -5,6 +5,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "stores")
@@ -12,12 +13,12 @@ import java.time.OffsetDateTime;
 public class StoreEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id_store")
-    private Long id;
+    private UUID id;
 
     @Column(name = "external_owner_user_id", unique = true)
-    private String externalOwnerUserId;
+    private UUID externalOwnerUserId;
 
     private String name;
     private String description;
@@ -58,19 +59,19 @@ public class StoreEntity {
     private StoreStatusEntity status;
     // getters and setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public String getExternalOwnerUserId() {
+    public UUID getExternalOwnerUserId() {
         return externalOwnerUserId;
     }
 
-    public void setExternalOwnerUserId(String externalOwnerUserId) {
+    public void setExternalOwnerUserId(UUID externalOwnerUserId) {
         this.externalOwnerUserId = externalOwnerUserId;
     }
 

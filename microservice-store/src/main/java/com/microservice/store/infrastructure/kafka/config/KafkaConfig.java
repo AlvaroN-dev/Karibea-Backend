@@ -32,4 +32,21 @@ public class KafkaConfig {
     public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
+
+    @Bean
+    public org.springframework.kafka.core.ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, org.springframework.kafka.support.serializer.JsonDeserializer.class);
+        configProps.put(org.springframework.kafka.support.serializer.JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return new org.springframework.kafka.core.DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory<String, Object> factory = new org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
 }

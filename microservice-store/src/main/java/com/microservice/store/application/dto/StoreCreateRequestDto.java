@@ -2,11 +2,12 @@ package com.microservice.store.application.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 
 public class StoreCreateRequestDto {
 
     @NotBlank
-    private String externalOwnerUserId;
+    private UUID externalOwnerUserId;
 
     @NotBlank
     private String name;
@@ -20,10 +21,10 @@ public class StoreCreateRequestDto {
     private String logoUrl;
     private String bannerUrl;
     // getters / setters
-    public String getExternalOwnerUserId() {
+    public UUID getExternalOwnerUserId() {
         return externalOwnerUserId;
     }
-    public void setExternalOwnerUserId(String externalOwnerUserId) {
+    public void setExternalOwnerUserId(UUID externalOwnerUserId) {
         this.externalOwnerUserId = externalOwnerUserId;
     }
     public String getName() {

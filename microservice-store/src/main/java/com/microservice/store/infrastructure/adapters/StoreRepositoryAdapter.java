@@ -8,6 +8,7 @@ import com.microservice.store.infrastructure.repositories.StoreJpaRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 public class StoreRepositoryAdapter implements StoreRepositoryPort {
 
@@ -23,12 +24,12 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
     }
 
     @Override
-    public Optional<Store> findById(Long id) {
+    public Optional<Store> findById(UUID id) {
         return repository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public Optional<Store> findByExternalOwnerUserId(String externalOwnerUserId) {
+    public Optional<Store> findByExternalOwnerUserId(UUID externalOwnerUserId) {
         return repository.findByExternalOwnerUserId(externalOwnerUserId)
                 .map(this::toDomain);
     }
@@ -47,7 +48,7 @@ public class StoreRepositoryAdapter implements StoreRepositoryPort {
     }
 
     @Override
-    public void softDelete(Long id) {
+    public void softDelete(UUID id) {
         repository.findById(id).ifPresent(entity -> {
             entity.setDeleted(true);
             repository.save(entity);

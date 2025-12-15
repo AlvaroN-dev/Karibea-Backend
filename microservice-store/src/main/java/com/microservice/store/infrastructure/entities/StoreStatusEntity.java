@@ -5,6 +5,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "stores_status")
@@ -12,7 +13,9 @@ import java.time.OffsetDateTime;
 public class StoreStatusEntity {
 
     @Id
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
+    private UUID id;
 
     private String name;
 
@@ -30,11 +33,11 @@ public class StoreStatusEntity {
     private OffsetDateTime updatedAt;
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

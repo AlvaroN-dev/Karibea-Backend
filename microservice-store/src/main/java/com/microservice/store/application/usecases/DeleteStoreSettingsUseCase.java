@@ -1,6 +1,7 @@
 package com.microservice.store.application.usecases;
 
 import com.microservice.store.domain.service.StoreSettingsService;
+import java.util.UUID;
 
 public class DeleteStoreSettingsUseCase {
 
@@ -10,7 +11,7 @@ public class DeleteStoreSettingsUseCase {
         this.service = service;
     }
 
-    public void execute(Long storeId) {
+    public void execute(UUID storeId) {
         service.delete(storeId);
     }
 }

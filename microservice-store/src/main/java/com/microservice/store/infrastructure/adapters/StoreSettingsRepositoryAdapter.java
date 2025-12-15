@@ -4,6 +4,7 @@ import com.microservice.store.domain.models.StoreSettings;
 import com.microservice.store.domain.port.StoreSettingsRepositoryPort;
 import com.microservice.store.infrastructure.entities.StoreSettingsEntity;
 import com.microservice.store.infrastructure.repositories.StoreSettingsJpaRepository;
+import java.util.UUID;
 
 public class StoreSettingsRepositoryAdapter implements StoreSettingsRepositoryPort {
 
@@ -24,12 +25,12 @@ public class StoreSettingsRepositoryAdapter implements StoreSettingsRepositoryPo
     }
 
     @Override
-    public java.util.Optional<StoreSettings> findByStoreId(Long storeId) {
+    public java.util.Optional<StoreSettings> findByStoreId(UUID storeId) {
         return repository.findByStoreId(storeId).map(this::toDomain);
     }
 
     @Override
-    public void delete(Long storeId) {
+    public void delete(UUID storeId) {
         repository.deleteByStoreId(storeId);
     }
 

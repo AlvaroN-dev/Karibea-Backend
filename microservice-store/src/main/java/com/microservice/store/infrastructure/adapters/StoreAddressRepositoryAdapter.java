@@ -8,6 +8,7 @@ import com.microservice.store.infrastructure.repositories.StoreAddressJpaReposit
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 public class StoreAddressRepositoryAdapter implements StoreAddressRepositoryPort {
 
@@ -23,12 +24,12 @@ public class StoreAddressRepositoryAdapter implements StoreAddressRepositoryPort
     }
 
     @Override
-    public Optional<StoreAddress> findById(Long id) {
+    public Optional<StoreAddress> findById(UUID id) {
         return repository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public List<StoreAddress> findByStoreId(Long storeId) {
+    public List<StoreAddress> findByStoreId(UUID storeId) {
         return repository.findByStoreId(storeId)
                 .stream()
                 .map(this::toDomain)
@@ -41,7 +42,7 @@ public class StoreAddressRepositoryAdapter implements StoreAddressRepositoryPort
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(UUID id) {
         repository.deleteById(id);
     }
 

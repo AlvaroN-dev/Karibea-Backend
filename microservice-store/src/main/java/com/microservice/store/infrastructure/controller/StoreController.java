@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/stores")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Store", description = "Store Management APIs")
 public class StoreController {
 
     private final CreateStoreUseCase createUC;
@@ -37,6 +39,8 @@ public class StoreController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @io.swagger.v3.oas.annotations.Operation(summary = "Create a new store", description = "Creates a new store with initial information")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Store created successfully")
     public StoreResponseDto create(
             @Valid @RequestBody StoreCreateRequestDto request
     ) {
@@ -45,11 +49,15 @@ public class StoreController {
     }
 
     @GetMapping("/{id}")
-    public StoreResponseDto getById(@PathVariable Long id) {
+    @io.swagger.v3.oas.annotations.Operation(summary = "Get store by ID", description = "Retrieves detailed information about a store")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Store found")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Store not found")
+    public StoreResponseDto getById(@PathVariable UUID id) {
         return StoreMapper.toResponse(getUC.byId(id));
     }
 
     @GetMapping
+    @io.swagger.v3.oas.annotations.Operation(summary = "List all stores", description = "Retrieves a list of all registered stores")
     public List<StoreResponseDto> list() {
         return listUC.execute()
                 .stream()
@@ -58,8 +66,10 @@ public class StoreController {
     }
 
     @PutMapping("/{id}")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Update store", description = "Updates an existing store information")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Store updated successfully")
     public StoreResponseDto update(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody StoreUpdateRequestDto request
     ) {
         Store store = StoreMapper.toDomain(request);
@@ -68,7 +78,9 @@ public class StoreController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    @io.swagger.v3.oas.annotations.Operation(summary = "Delete store", description = "Soft deletes a store")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Store deleted successfully")
+    public void delete(@PathVariable UUID id) {
         deleteUC.execute(id);
     }
 }

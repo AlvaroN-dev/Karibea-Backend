@@ -4,6 +4,7 @@ import com.microservice.store.domain.models.Store;
 import com.microservice.store.domain.port.StoreRepositoryPort;
 
 import java.util.List;
+import java.util.UUID;
 
 public class StoreService {
 
@@ -19,12 +20,12 @@ public class StoreService {
     }
 
     /* READ */
-    public Store getById(Long id) {
+    public Store getById(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Store not found"));
     }
 
-    public Store getByOwner(String externalOwnerUserId) {
+    public Store getByOwner(UUID externalOwnerUserId) {
         return repository.findByExternalOwnerUserId(externalOwnerUserId)
                 .orElseThrow(() -> new RuntimeException("Store not found"));
     }
@@ -34,7 +35,7 @@ public class StoreService {
     }
 
     /* UPDATE */
-    public Store update(Long id, Store store) {
+    public Store update(UUID id, Store store) {
         Store existing = getById(id);
 
         existing.setName(store.getName());
@@ -48,7 +49,7 @@ public class StoreService {
     }
 
     /* DELETE (soft) */
-    public void delete(Long id) {
+    public void delete(UUID id) {
         repository.softDelete(id);
     }
 }

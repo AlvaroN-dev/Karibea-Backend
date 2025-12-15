@@ -4,6 +4,7 @@ import com.microservice.store.domain.models.StoreAddress;
 import com.microservice.store.domain.service.StoreAddressService;
 
 import java.util.List;
+import java.util.UUID;
 
 public class GetStoreAddressesUseCase {
 
@@ -13,7 +14,7 @@ public class GetStoreAddressesUseCase {
         this.service = service;
     }
 
-    public List<StoreAddress> execute(Long storeId) {
+    public List<StoreAddress> execute(UUID storeId) {
         return service.getAllByStoreId(storeId);
     }
 }

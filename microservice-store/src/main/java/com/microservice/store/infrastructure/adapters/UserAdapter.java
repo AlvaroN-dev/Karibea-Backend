@@ -4,6 +4,7 @@ import com.microservice.store.domain.port.UserGatewayPort;
 import com.microservice.store.infrastructure.client.UserClient;
 import feign.FeignException;
 import org.springframework.stereotype.Component;
+import java.util.UUID;
 
 @Component
 public class UserAdapter implements UserGatewayPort {
@@ -15,7 +16,7 @@ public class UserAdapter implements UserGatewayPort {
     }
 
     @Override
-    public boolean exists(String userId) {
+    public boolean exists(UUID userId) {
         try {
             userClient.getUser(userId);
             return true;

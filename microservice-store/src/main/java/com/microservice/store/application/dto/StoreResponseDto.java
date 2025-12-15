@@ -1,25 +1,27 @@
 package com.microservice.store.application.dto;
 
+import java.util.UUID;
+
 public class StoreResponseDto {
 
-    private Long id;
-    private String externalOwnerUserId;
+    private UUID id;
+    private UUID externalOwnerUserId;
     private String name;
     private String description;
     private String email;
     private String phone;
     private String logoUrl;
     private String bannerUrl;
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
-    public String getExternalOwnerUserId() {
+    public UUID getExternalOwnerUserId() {
         return externalOwnerUserId;
     }
-    public void setExternalOwnerUserId(String externalOwnerUserId) {
+    public void setExternalOwnerUserId(UUID externalOwnerUserId) {
         this.externalOwnerUserId = externalOwnerUserId;
     }
     public String getName() {
@@ -57,6 +59,34 @@ public class StoreResponseDto {
     }
     public void setBannerUrl(String bannerUrl) {
         this.bannerUrl = bannerUrl;
+    }
+
+    private StoreStatusDto status;
+    private java.util.List<StoreAddressDto> addresses;
+    private StoreSettingsDto settings;
+
+    public StoreStatusDto getStatus() {
+        return status;
+    }
+
+    public void setStatus(StoreStatusDto status) {
+        this.status = status;
+    }
+
+    public java.util.List<StoreAddressDto> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(java.util.List<StoreAddressDto> addresses) {
+        this.addresses = addresses;
+    }
+
+    public StoreSettingsDto getSettings() {
+        return settings;
+    }
+
+    public void setSettings(StoreSettingsDto settings) {
+        this.settings = settings;
     }
 
     // getters / setters

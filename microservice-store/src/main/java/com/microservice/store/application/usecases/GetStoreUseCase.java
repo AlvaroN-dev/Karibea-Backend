@@ -2,6 +2,7 @@ package com.microservice.store.application.usecases;
 
 import com.microservice.store.domain.models.Store;
 import com.microservice.store.domain.service.StoreService;
+import java.util.UUID;
 
 public class GetStoreUseCase {
 
@@ -11,11 +12,11 @@ public class GetStoreUseCase {
         this.service = service;
     }
 
-    public Store byId(Long id) {
+    public Store byId(UUID id) {
         return service.getById(id);
     }
 
-    public Store byOwner(String ownerId) {
+    public Store byOwner(UUID ownerId) {
         return service.getByOwner(ownerId);
     }
 }

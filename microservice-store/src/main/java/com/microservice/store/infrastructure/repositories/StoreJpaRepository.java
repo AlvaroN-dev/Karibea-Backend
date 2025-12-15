@@ -5,10 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-public interface StoreJpaRepository extends JpaRepository<StoreEntity, Long> {
+public interface StoreJpaRepository extends JpaRepository<StoreEntity, UUID> {
 
-    Optional<StoreEntity> findByExternalOwnerUserId(String externalOwnerUserId);
+    Optional<StoreEntity> findByExternalOwnerUserId(UUID externalOwnerUserId);
 
     List<StoreEntity> findByDeletedFalse();
 }

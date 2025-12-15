@@ -1,40 +1,16 @@
-package com.microservice.store.infrastructure.entities;
+package com.microservice.store.application.dto;
 
-import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "store_addresses")
-@EntityListeners(AuditingEntityListener.class)
-public class StoreAddressEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id_store_address")
+public class StoreAddressDto {
     private UUID id;
-
-    @Column(name = "id_store")
-    private UUID storeId;
-
-    @Column(name = "address_type")
     private String addressType;
-
     private String streetAddress;
     private String city;
     private String state;
     private String postalCode;
     private String country;
-
-    @Column(name = "is_primary")
     private boolean primary;
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-    // getters / setters
 
     public UUID getId() {
         return id;
@@ -42,14 +18,6 @@ public class StoreAddressEntity {
 
     public void setId(UUID id) {
         this.id = id;
-    }
-
-    public UUID getStoreId() {
-        return storeId;
-    }
-
-    public void setStoreId(UUID storeId) {
-        this.storeId = storeId;
     }
 
     public String getAddressType() {
@@ -107,13 +75,4 @@ public class StoreAddressEntity {
     public void setPrimary(boolean primary) {
         this.primary = primary;
     }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(OffsetDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
 }

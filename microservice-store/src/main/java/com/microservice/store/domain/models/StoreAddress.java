@@ -1,7 +1,8 @@
 package com.microservice.store.domain.models;
+import java.util.UUID;
 
 public class StoreAddress {
-    private Long id;
+    private UUID id;
     private String addressType;
     private String streetAddress;
     private String city;
@@ -10,10 +11,10 @@ public class StoreAddress {
     private String country;
     private boolean primary;
     // getters / setters
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
     public String getAddressType() {

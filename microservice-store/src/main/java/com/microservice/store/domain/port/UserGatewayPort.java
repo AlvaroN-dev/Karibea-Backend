@@ -1,5 +1,7 @@
 package com.microservice.store.domain.port;
 
+import java.util.UUID;
+
 public interface UserGatewayPort {
-    boolean exists(String userId);
+    boolean exists(UUID userId);
 }
