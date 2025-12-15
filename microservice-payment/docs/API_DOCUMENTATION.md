@@ -1,5 +1,10 @@
 # Payment Microservice - API Documentation
 
+## Interactive API Documentation (Swagger UI)
+Access the interactive API documentation at:
+- **Local:** [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html)
+- **OpenAPI Spec:** [http://localhost:8085/v3/api-docs](http://localhost:8085/v3/api-docs)
+
 ## Base URL
 ```
 http://localhost:8085/api/v1

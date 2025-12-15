@@ -31,23 +31,24 @@ import com.microservice.payment.domain.port.in.SaveUserPaymentMethodUseCase;
 import com.microservice.payment.domain.port.in.SaveUserPaymentMethodUseCase.SaveUserPaymentMethodCommand;
 import com.microservice.payment.domain.port.in.SetDefaultPaymentMethodUseCase;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 /**
  * REST Controller for Payment Method operations.
- * 
- * <p>
- * <b>SOLID Compliance:</b>
- * </p>
- * <ul>
- * <li>Depends on 5 separate interfaces following SRP</li>
- * <li>Each use case has single responsibility</li>
- * <li>Controller only coordinates HTTP layer</li>
- * </ul>
+ * Handles system payment methods and user-saved payment methods.
  */
 @RestController
 @RequestMapping("/api/v1/payment-methods")
 @Validated
+@Tag(name = "Payment Methods", description = "Payment methods management API")
 public class PaymentMethodController {
 
     private final GetPaymentMethodsUseCase getPaymentMethodsUseCase;
@@ -72,6 +73,16 @@ public class PaymentMethodController {
         this.paymentMethodMapper = paymentMethodMapper;
     }
 
+    @Operation(
+            summary = "Get all active payment methods",
+            description = "Retrieves all system-level payment methods that are currently active and available for use")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment methods retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = PaymentMethodResponse.class)))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:read scope required")
+    })
     @GetMapping
     @PreAuthorize("hasAuthority('SCOPE_payment:read')")
     public ResponseEntity<List<PaymentMethodResponse>> getActivePaymentMethods() {
@@ -79,18 +90,40 @@ public class PaymentMethodController {
         return ResponseEntity.ok(paymentMethodMapper.toResponseList(paymentMethods));
     }
 
+    @Operation(
+            summary = "Get payment method by ID",
+            description = "Retrieves a specific payment method by its unique identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment method found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PaymentMethodResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:read scope required"),
+            @ApiResponse(responseCode = "404", description = "Payment method not found")
+    })
     @GetMapping("/{paymentMethodId}")
     @PreAuthorize("hasAuthority('SCOPE_payment:read')")
     public ResponseEntity<PaymentMethodResponse> getPaymentMethod(
+            @Parameter(description = "Payment method unique identifier", required = true)
             @PathVariable UUID paymentMethodId) {
 
         PaymentMethod paymentMethod = getPaymentMethodsUseCase.getById(paymentMethodId);
         return ResponseEntity.ok(paymentMethodMapper.toResponse(paymentMethod));
     }
 
+    @Operation(
+            summary = "Get user's saved payment methods",
+            description = "Retrieves all payment methods saved by a specific user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User payment methods retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = UserPaymentMethodResponse.class)))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:read scope required")
+    })
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAuthority('SCOPE_payment:read')")
     public ResponseEntity<List<UserPaymentMethodResponse>> getUserPaymentMethods(
+            @Parameter(description = "User unique identifier", required = true)
             @PathVariable UUID userId) {
 
         List<UserPaymentMethod> userPaymentMethods = getUserPaymentMethodsUseCase.getByUserId(userId);
@@ -104,6 +137,17 @@ public class PaymentMethodController {
                         .toList());
     }
 
+    @Operation(
+            summary = "Save a user payment method",
+            description = "Saves a new payment method for the authenticated user with tokenized card data")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Payment method saved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserPaymentMethodResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:write scope required"),
+            @ApiResponse(responseCode = "404", description = "Payment method not found")
+    })
     @PostMapping("/user")
     @PreAuthorize("hasAuthority('SCOPE_payment:write')")
     public ResponseEntity<UserPaymentMethodResponse> saveUserPaymentMethod(
@@ -114,14 +158,14 @@ public class PaymentMethodController {
 
         SaveUserPaymentMethodCommand command = new SaveUserPaymentMethodCommand(
                 userId,
-                request.paymentMethodId(),
-                request.tokenizedData(),
-                request.alias(),
-                request.maskedCardNumber(),
-                request.cardBrand(),
-                request.expiryMonth(),
-                request.expiryYear(),
-                request.setAsDefault());
+                request.getPaymentMethodId(),
+                request.getTokenizedData(),
+                request.getAlias(),
+                request.getMaskedCardNumber(),
+                request.getCardBrand(),
+                request.getExpiryMonth(),
+                request.getExpiryYear(),
+                request.isSetAsDefault());
 
         UserPaymentMethod saved = saveUserPaymentMethodUseCase.execute(command);
         PaymentMethod pm = getPaymentMethodsUseCase.getById(saved.getPaymentMethodId());
@@ -130,9 +174,19 @@ public class PaymentMethodController {
                 .body(paymentMethodMapper.toUserPaymentMethodResponse(saved, pm.getName()));
     }
 
+    @Operation(
+            summary = "Remove a user payment method",
+            description = "Removes a saved payment method for the authenticated user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Payment method removed successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:write scope required or user doesn't own this payment method"),
+            @ApiResponse(responseCode = "404", description = "Payment method not found")
+    })
     @DeleteMapping("/user/{userPaymentMethodId}")
     @PreAuthorize("hasAuthority('SCOPE_payment:write')")
     public ResponseEntity<Void> removeUserPaymentMethod(
+            @Parameter(description = "User payment method unique identifier", required = true)
             @PathVariable UUID userPaymentMethodId,
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -141,9 +195,19 @@ public class PaymentMethodController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+            summary = "Set default payment method",
+            description = "Sets a saved payment method as the default for the authenticated user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Default payment method set successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT token required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - payment:write scope required or user doesn't own this payment method"),
+            @ApiResponse(responseCode = "404", description = "Payment method not found")
+    })
     @PutMapping("/user/{userPaymentMethodId}/default")
     @PreAuthorize("hasAuthority('SCOPE_payment:write')")
     public ResponseEntity<Void> setDefaultPaymentMethod(
+            @Parameter(description = "User payment method unique identifier", required = true)
             @PathVariable UUID userPaymentMethodId,
             @AuthenticationPrincipal Jwt jwt) {
 
