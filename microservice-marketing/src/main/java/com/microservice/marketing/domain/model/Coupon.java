@@ -1,9 +1,7 @@
 package com.microservice.marketing.domain.model;
 
 import java.time.LocalDateTime;
-import java.time.LocalDateTime;
 import java.util.UUID;
-import com.microservice.marketing.domain.model.Promotion;
 
 public class Coupon {
     private UUID id;

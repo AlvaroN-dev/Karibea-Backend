@@ -12,11 +12,6 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>microservice-shopcart</name>
 	<description>Spring Boot Microservices Shopcart</description>
-	<groupId>com.microservice.card</groupId>
-	<artifactId>microservice-card</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>microservice-card</name>
-	<description>Spring Boot Microservices Card</description>
 	<url/>
 	<licenses>
 		<license/>
