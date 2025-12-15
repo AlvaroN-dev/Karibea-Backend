@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: microservice-user
+
+  # Config Server disabled for tests
+  cloud:
+    config:
+      enabled: false
+
+  # H2 Database for testing
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  # JPA Configuration for H2
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Kafka disabled for tests
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-startup: false
+    listener:
+      auto-startup: false
+
+  # Security disabled for tests
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080
+
+# Eureka disabled for tests
+eureka:
+  client:
+    enabled: false
+
+# Logging minimal for tests
+logging:
+  level:
+    root: WARN
+    com.microservice.user: INFO
