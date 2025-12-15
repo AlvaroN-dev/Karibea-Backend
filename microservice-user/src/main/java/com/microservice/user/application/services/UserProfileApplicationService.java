@@ -46,15 +46,15 @@ public class UserProfileApplicationService {
     
     public UserProfileResponse createProfile(CreateUserProfileRequest request) {
         CreateUserProfileCommand command = new CreateUserProfileCommand(
-            request.externalUserId(),
-            request.firstName(),
-            request.lastName(),
-            request.middleName(),
-            request.secondLastname(),
-            request.phone(),
-            request.genderId(),
-            request.avatarUrl(),
-            request.dateOfBirth()
+            request.getExternalUserId(),
+            request.getFirstName(),
+            request.getLastName(),
+            request.getMiddleName(),
+            request.getSecondLastname(),
+            request.getPhone(),
+            request.getGenderId(),
+            request.getAvatarUrl(),
+            request.getDateOfBirth()
         );
         
         UserProfile profile = createUserProfileUseCase.execute(command);
@@ -64,14 +64,14 @@ public class UserProfileApplicationService {
     public UserProfileResponse updateProfile(UUID profileId, UpdateUserProfileRequest request) {
         UpdateUserProfileCommand command = new UpdateUserProfileCommand(
             profileId,
-            request.firstName(),
-            request.lastName(),
-            request.middleName(),
-            request.secondLastname(),
-            request.phone(),
-            request.genderId(),
-            request.avatarUrl(),
-            request.dateOfBirth()
+            request.getFirstName(),
+            request.getLastName(),
+            request.getMiddleName(),
+            request.getSecondLastname(),
+            request.getPhone(),
+            request.getGenderId(),
+            request.getAvatarUrl(),
+            request.getDateOfBirth()
         );
         
         UserProfile profile = updateUserProfileUseCase.execute(command);

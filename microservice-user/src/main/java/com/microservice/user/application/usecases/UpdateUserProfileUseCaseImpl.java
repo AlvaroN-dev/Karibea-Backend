@@ -23,14 +23,12 @@ public class UpdateUserProfileUseCaseImpl implements UpdateUserProfileUseCase {
     
     private final UserProfileDomainService domainService;
     private final UserProfileRepositoryPort userProfileRepository;
-    private final GenderRepositoryPort genderRepository;
     private final EventPublisherPort eventPublisher;
     
     public UpdateUserProfileUseCaseImpl(UserProfileRepositoryPort userProfileRepository,
                                         GenderRepositoryPort genderRepository,
                                         EventPublisherPort eventPublisher) {
         this.userProfileRepository = userProfileRepository;
-        this.genderRepository = genderRepository;
         this.domainService = new UserProfileDomainService(userProfileRepository, genderRepository);
         this.eventPublisher = eventPublisher;
     }

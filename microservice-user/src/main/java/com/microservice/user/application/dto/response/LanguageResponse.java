@@ -1,12 +1,56 @@
 package com.microservice.user.application.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.UUID;
 
 /**
- * DTO de respuesta para idioma
+ * Response DTO for language catalog item.
  */
-public record LanguageResponse(
-    UUID id,
-    String name,
-    String code
-) {}
+@Schema(description = "Language catalog information")
+public class LanguageResponse {
+
+    @Schema(description = "Unique language ID", example = "550e8400-e29b-41d4-a716-446655440000")
+    private UUID id;
+
+    @Schema(description = "Language name", example = "English")
+    private String name;
+
+    @Schema(description = "Language ISO code", example = "en")
+    private String code;
+
+    // Constructors
+    public LanguageResponse() {
+    }
+
+    public LanguageResponse(UUID id, String name, String code) {
+        this.id = id;
+        this.name = name;
+        this.code = code;
+    }
+
+    // Getters and Setters
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+}

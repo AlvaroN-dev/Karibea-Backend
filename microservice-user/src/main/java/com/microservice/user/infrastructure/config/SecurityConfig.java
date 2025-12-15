@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Configuración de seguridad OAuth2 Resource Server
+ * Security configuration for OAuth2 Resource Server.
  */
 @Configuration
 @EnableWebSecurity
@@ -24,10 +24,14 @@ public class SecurityConfig {
         return http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos
+                // Public endpoints
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/catalogs/**").permitAll()
-                // Endpoints protegidos
+                // Swagger/OpenAPI
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/api-docs/**", "/api-docs.yaml").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                // Protected endpoints
                 .requestMatchers("/api/v1/profiles/**").authenticated()
                 .requestMatchers("/api/v1/addresses/**").authenticated()
                 .requestMatchers("/api/v1/preferences/**").authenticated()
