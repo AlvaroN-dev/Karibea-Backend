@@ -1,14 +1,77 @@
 # Order Microservice API
 
-Order management microservice for the Karibea ecosystem, built with **Spring Boot 3.5**, **Hexagonal Architecture**, and **DDD**.
+Order management microservice for the Karibea ecosystem, built with **Spring Boot 3.5**, **Hexagonal Architecture**, **DDD**, and **Event-Driven Architecture** using Apache Kafka.
 
-## Base URL
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Base URL](#base-url)
+- [Authentication](#authentication)
+- [API Endpoints](#api-endpoints)
+- [Request/Response Examples](#requestresponse-examples)
+- [Error Responses](#error-responses)
+- [Kafka Events](#kafka-events)
+- [Configuration](#configuration)
+- [Database Schema](#database-schema)
+
+---
+
+## 🏗️ Architecture
+
+This microservice follows **Hexagonal Architecture** (Ports & Adapters) with **Domain-Driven Design** principles:
 
 ```
-http://localhost:8080/api/v1/orders
+com.microservice.order
+├── application/          # Use cases, DTOs, mappers
+│   ├── dto/
+│   │   ├── request/     # Input DTOs
+│   │   └── response/    # Output DTOs with enriched data
+│   ├── exception/       # Application exceptions
+│   ├── mapper/          # Domain ↔ DTO mappers
+│   └── usecases/        # Business use case implementations
+├── domain/              # Pure domain logic (no framework dependencies)
+│   ├── events/          # Domain events
+│   ├── exceptions/      # Domain exceptions
+│   ├── models/          # Aggregates, entities, value objects
+│   └── port/
+│       ├── in/          # Inbound ports (use case interfaces)
+│       └── out/         # Outbound ports (repository, messaging)
+└── infrastructure/      # Framework-specific implementations
+    ├── adapters/        # Port implementations
+    ├── configs/         # Spring configurations
+    ├── controller/      # REST controllers
+    ├── entities/        # JPA entities
+    ├── exceptions/      # Exception handlers
+    ├── kafka/
+    │   ├── config/      # Kafka configuration
+    │   ├── consumer/    # Event consumers
+    │   └── producer/    # Event producers
+    └── repositories/    # JPA repositories
 ```
 
-## Authentication
+### Key Principles
+
+- ✅ **Event-Driven**: All inter-service communication via Kafka
+- ✅ **No WebClient/RestTemplate**: Removed in favor of event-driven patterns
+- ✅ **Domain Isolation**: Domain layer has zero framework dependencies
+- ✅ **Eventual Consistency**: Accepted for inter-service operations
+- ✅ **Idempotent Producers**: Kafka producers configured for exactly-once semantics
+
+---
+
+## 🌐 Base URL
+
+```
+http://localhost:8084/api/v1/orders
+```
+
+## 📖 Swagger UI
+
+```
+http://localhost:8084/swagger-ui.html
+```
+
+## 🔐 Authentication
 
 All endpoints require JWT Bearer token authentication via OAuth2 Resource Server.
 
@@ -18,13 +81,26 @@ Authorization: Bearer <jwt_token>
 
 ---
 
-## Endpoints
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/orders` | Create a new order |
+| `GET` | `/api/v1/orders/{orderId}` | Get order by ID |
+| `GET` | `/api/v1/orders/number/{orderNumber}` | Get order by order number |
+| `GET` | `/api/v1/orders/customer/{customerId}` | Get orders by customer (paginated) |
+| `GET` | `/api/v1/orders/store/{storeId}` | Get orders by store (paginated) |
+| `POST` | `/api/v1/orders/{orderId}/cancel` | Cancel an order |
+| `POST` | `/api/v1/orders/{orderId}/confirm` | Confirm an order |
+| `PATCH` | `/api/v1/orders/{orderId}/status` | Change order status |
+
+---
+
+## 📝 Request/Response Examples
 
 ### 1. Create Order
 
 **POST** `/api/v1/orders`
-
-Creates a new order with the specified items.
 
 **Request Body:**
 ```json
@@ -65,9 +141,23 @@ Creates a new order with the specified items.
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440100",
-  "orderNumber": "ORD-20241212-A1B2C3D4",
-  "customerId": "550e8400-e29b-41d4-a716-446655440001",
-  "storeId": "550e8400-e29b-41d4-a716-446655440002",
+  "orderNumber": "ORD-20241215-A1B2C3D4",
+  "customer": {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "firstName": null,
+    "lastName": null,
+    "email": null,
+    "phone": null
+  },
+  "store": {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "name": null,
+    "email": null,
+    "phone": null,
+    "logoUrl": null
+  },
+  "payment": null,
+  "shipment": null,
   "status": "PENDING",
   "currency": "USD",
   "shippingAddress": {
@@ -89,7 +179,17 @@ Creates a new order with the specified items.
   "items": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440200",
-      "productId": "550e8400-e29b-41d4-a716-446655440010",
+      "product": {
+        "id": "550e8400-e29b-41d4-a716-446655440010",
+        "name": null,
+        "description": null,
+        "brand": null,
+        "sku": null,
+        "basePrice": null,
+        "currency": null,
+        "primaryImageUrl": null,
+        "isActive": null
+      },
       "productName": "Wireless Headphones",
       "variantName": "Black",
       "sku": "WH-001-BLK",
@@ -103,6 +203,7 @@ Creates a new order with the specified items.
     }
   ],
   "coupons": [],
+  "statusHistory": [],
   "subtotal": 199.98,
   "discountTotal": 0.00,
   "taxTotal": 0.00,
@@ -113,10 +214,12 @@ Creates a new order with the specified items.
   "shippedAt": null,
   "deliveredAt": null,
   "cancelledAt": null,
-  "createdAt": "2024-12-12T21:50:00",
-  "updatedAt": "2024-12-12T21:50:00"
+  "createdAt": "2024-12-15T21:50:00",
+  "updatedAt": "2024-12-15T21:50:00"
 }
 ```
+
+> **Note:** External entity fields (customer, store, product, payment, shipment) return only the ID. Full data can be fetched by clients using the respective microservice APIs or enriched via a BFF (Backend For Frontend) pattern.
 
 ---
 
@@ -124,43 +227,30 @@ Creates a new order with the specified items.
 
 **GET** `/api/v1/orders/{orderId}`
 
-**Path Parameters:**
-- `orderId` (UUID) - Order ID
-
 **Response:** `200 OK`
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440100",
-  "orderNumber": "ORD-20241212-A1B2C3D4",
-  "status": "PENDING",
+  "orderNumber": "ORD-20241215-A1B2C3D4",
+  "status": "CONFIRMED",
+  "payment": {
+    "id": "550e8400-e29b-41d4-a716-446655440300",
+    "transactionId": null,
+    "paymentMethod": null,
+    "paymentStatus": null,
+    "amount": null,
+    "currency": null,
+    "processedAt": null
+  },
   ...
 }
 ```
 
 ---
 
-### 3. Get Order by Order Number
-
-**GET** `/api/v1/orders/number/{orderNumber}`
-
-**Path Parameters:**
-- `orderNumber` (String) - Order number (e.g., ORD-20241212-A1B2C3D4)
-
-**Response:** `200 OK`
-
----
-
-### 4. Get Orders by Customer
+### 3. Get Orders by Customer (Paginated)
 
 **GET** `/api/v1/orders/customer/{customerId}?page=0&size=10&sort=createdAt,desc`
-
-**Path Parameters:**
-- `customerId` (UUID) - Customer ID
-
-**Query Parameters:**
-- `page` (int, default: 0) - Page number
-- `size` (int, default: 10) - Page size
-- `sort` (string) - Sort field and direction
 
 **Response:** `200 OK`
 ```json
@@ -168,40 +258,30 @@ Creates a new order with the specified items.
   "content": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440100",
-      "orderNumber": "ORD-20241212-A1B2C3D4",
+      "orderNumber": "ORD-20241215-A1B2C3D4",
       ...
     }
   ],
   "pageable": {
     "pageNumber": 0,
-    "pageSize": 10
+    "pageSize": 10,
+    "sort": {
+      "sorted": true,
+      "direction": "DESC"
+    }
   },
   "totalElements": 25,
-  "totalPages": 3
+  "totalPages": 3,
+  "first": true,
+  "last": false
 }
 ```
 
 ---
 
-### 5. Get Orders by Store
-
-**GET** `/api/v1/orders/store/{storeId}?page=0&size=10`
-
-**Path Parameters:**
-- `storeId` (UUID) - Store ID
-
-**Response:** `200 OK` (Paginated)
-
----
-
-### 6. Cancel Order
+### 4. Cancel Order
 
 **POST** `/api/v1/orders/{orderId}/cancel`
-
-Cancels an order if it's in a cancellable state (PENDING, CONFIRMED, PROCESSING).
-
-**Path Parameters:**
-- `orderId` (UUID) - Order ID
 
 **Request Body:**
 ```json
@@ -215,30 +295,17 @@ Cancels an order if it's in a cancellable state (PENDING, CONFIRMED, PROCESSING)
 
 ---
 
-### 7. Confirm Order
+### 5. Confirm Order
 
 **POST** `/api/v1/orders/{orderId}/confirm?paymentId={paymentId}`
-
-Confirms an order after payment (typically called by payment service).
-
-**Path Parameters:**
-- `orderId` (UUID) - Order ID
-
-**Query Parameters:**
-- `paymentId` (UUID) - Payment ID
 
 **Response:** `204 No Content`
 
 ---
 
-### 8. Change Order Status
+### 6. Change Order Status
 
 **PATCH** `/api/v1/orders/{orderId}/status`
-
-Changes order status manually (admin use).
-
-**Path Parameters:**
-- `orderId` (UUID) - Order ID
 
 **Request Body:**
 ```json
@@ -250,19 +317,21 @@ Changes order status manually (admin use).
 }
 ```
 
-**Valid Status Values:**
-- `PENDING` → `CONFIRMED`, `CANCELLED`
-- `CONFIRMED` → `PROCESSING`, `CANCELLED`
-- `PROCESSING` → `SHIPPED`, `CANCELLED`
-- `SHIPPED` → `DELIVERED`, `RETURNED`
-- `DELIVERED` → `RETURNED`, `COMPLETED`
-- `RETURNED` → `REFUNDED`
+**Valid Status Transitions:**
+| From | To |
+|------|-----|
+| `PENDING` | `CONFIRMED`, `CANCELLED` |
+| `CONFIRMED` | `PROCESSING`, `CANCELLED` |
+| `PROCESSING` | `SHIPPED`, `CANCELLED` |
+| `SHIPPED` | `DELIVERED`, `RETURNED` |
+| `DELIVERED` | `RETURNED`, `COMPLETED` |
+| `RETURNED` | `REFUNDED` |
 
 **Response:** `204 No Content`
 
 ---
 
-## Error Responses
+## ❌ Error Responses
 
 ### 400 Bad Request - Validation Error
 ```json
@@ -274,7 +343,7 @@ Changes order status manually (admin use).
       "message": "At least one item is required"
     }
   ],
-  "timestamp": "2024-12-12T21:50:00Z"
+  "timestamp": "2024-12-15T21:50:00Z"
 }
 ```
 
@@ -283,7 +352,7 @@ Changes order status manually (admin use).
 {
   "code": "ORDER_NOT_FOUND",
   "message": "Order not found with id: 550e8400-e29b-41d4-a716-446655440100",
-  "timestamp": "2024-12-12T21:50:00Z",
+  "timestamp": "2024-12-15T21:50:00Z",
   "traceId": "abc123"
 }
 ```
@@ -293,7 +362,7 @@ Changes order status manually (admin use).
 {
   "code": "INVALID_STATE_TRANSITION",
   "message": "Cannot transition from DELIVERED to PROCESSING",
-  "timestamp": "2024-12-12T21:50:00Z",
+  "timestamp": "2024-12-15T21:50:00Z",
   "traceId": "abc123"
 }
 ```
@@ -303,51 +372,158 @@ Changes order status manually (admin use).
 {
   "code": "INVARIANT_VIOLATION",
   "message": "Order must have at least one item",
-  "timestamp": "2024-12-12T21:50:00Z",
+  "timestamp": "2024-12-15T21:50:00Z",
   "traceId": "abc123"
 }
 ```
 
 ---
 
-## Kafka Events
+## 📨 Kafka Events
 
-The service publishes the following events to `order-events` topic:
+### Published Events (Topic: `order-events`)
 
-| Event | When Published |
-|-------|----------------|
-| `OrderCreated` | New order created |
-| `OrderConfirmed` | Order confirmed after payment |
-| `OrderStatusChanged` | Status changed |
-| `OrderCancelled` | Order cancelled |
-| `OrderShipped` | Order shipped |
-| `OrderDelivered` | Order delivered |
-| `OrderCouponApplied` | Coupon applied |
+| Event | When Published | Payload |
+|-------|----------------|---------|
+| `OrderCreated` | New order created | Order details, items, customer, store |
+| `OrderConfirmed` | Order confirmed after payment | Order ID, payment ID, confirmed timestamp |
+| `OrderStatusChanged` | Status changed | Order ID, previous status, new status, reason |
+| `OrderCancelled` | Order cancelled | Order ID, reason, cancelled timestamp |
+| `OrderShipped` | Order shipped | Order ID, shipment ID, shipped timestamp |
+| `OrderDelivered` | Order delivered | Order ID, delivered timestamp |
+| `OrderCouponApplied` | Coupon applied | Order ID, coupon code, discount amount |
+
+### Consumed Events
+
+| Topic | Events | Action |
+|-------|--------|--------|
+| `payment-events` | `PaymentCompleted` | Confirms order |
+| `payment-events` | `PaymentFailed` | Cancels order |
+| `payment-events` | `PaymentRefunded` | Updates order to REFUNDED |
+| `shipment-events` | `ShipmentCreated` | Updates order to PROCESSING |
+| `shipment-events` | `ShipmentShipped` | Updates order to SHIPPED |
+| `shipment-events` | `ShipmentDelivered` | Updates order to DELIVERED |
+| `shipment-events` | `ShipmentReturned` | Updates order to RETURNED |
+| `inventory-events` | `InventoryReservationFailed` | Cancels order |
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
 ```yaml
-# application.yml
 spring:
+  application:
+    name: microservice-order
+  
   datasource:
-    url: jdbc:postgresql://localhost:5432/order_db
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/karibea_order}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+  
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: order-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+  
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${OAUTH_ISSUER_URI}
+          issuer-uri: ${OAUTH2_ISSUER_URI}
+
+server:
+  port: ${SERVER_PORT:8084}
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
 ```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5432/karibea_order` |
+| `DATABASE_USERNAME` | Database username | `postgres` |
+| `DATABASE_PASSWORD` | Database password | `postgres` |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker addresses | `localhost:9092` |
+| `OAUTH2_ISSUER_URI` | OAuth2 token issuer URI | - |
+| `SERVER_PORT` | Application port | `8084` |
+| `EUREKA_SERVER_URL` | Eureka server URL | `http://localhost:8761/eureka` |
+
+---
+
+## 🗄️ Database Schema
+
+### Tables
+
+- **orders** - Main order table
+- **order_items** - Order line items
+- **order_coupons** - Applied coupons
+- **order_status_history** - Status change audit trail
+- **status_orders** - Order status reference (lookup table)
+
+### Key Relationships
+
+```
+orders (1) ──→ (N) order_items
+orders (1) ──→ (N) order_coupons  
+orders (1) ──→ (N) order_status_history
+orders (N) ──→ (1) status_orders
+```
+
+### External References (Foreign Keys to other microservices)
+
+| Field | References |
+|-------|------------|
+| `external_user_profiles_id` | `user_profiles.id` (User Service) |
+| `external_store_id` | `stores.id_store` (Store Service) |
+| `external_payment_id` | `transactions.id_transaction` (Payment Service) |
+| `external_shipment_id` | `shipments.id` (Shipping Service) |
+| `order_items.external_product_id` | `products.id` (Catalog Service) |
+
+---
+
+## 🚀 Running the Service
+
+### Prerequisites
+- Java 17+
+- PostgreSQL 15+
+- Apache Kafka 3.x
+- Eureka Server (optional for service discovery)
+
+### Local Development
+```bash
+# Build
+./mvnw clean package -DskipTests
+
+# Run
+./mvnw spring-boot:run
+
+# Run with profile
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Docker
+```bash
+docker build -t microservice-order .
+docker run -p 8084:8084 microservice-order
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](../LICENSE) for details.
