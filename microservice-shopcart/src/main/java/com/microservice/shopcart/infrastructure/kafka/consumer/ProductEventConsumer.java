@@ -2,9 +2,6 @@ package com.microservice.shopcart.infrastructure.kafka.consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microservice.shopcart.domain.exceptions.CartNotFoundException;
-import com.microservice.shopcart.domain.models.ShoppingCart;
-import com.microservice.shopcart.domain.port.out.CartRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,11 +18,9 @@ public class ProductEventConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(ProductEventConsumer.class);
 
-    private final CartRepositoryPort cartRepository;
     private final ObjectMapper objectMapper;
 
-    public ProductEventConsumer(CartRepositoryPort cartRepository, ObjectMapper objectMapper) {
-        this.cartRepository = cartRepository;
+    public ProductEventConsumer(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 

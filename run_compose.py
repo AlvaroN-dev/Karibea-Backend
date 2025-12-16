@@ -117,8 +117,8 @@ def check_and_free_port_5432():
         print("⚠️  Port 5432 is already in use.")
         
         # Check if it's our postgres container
-        if is_container_running("postgres"):
-            print("   ℹ️  It seems to be the Docker container 'postgres'. Proceeding...")
+        if is_container_running("karibea-postgres"):
+            print("   ℹ️  It seems to be the Docker container 'karibea-postgres'. Proceeding...")
             return True
             
         if platform.system() == "Linux":
@@ -167,10 +167,39 @@ def run_compose(environment):
         "microservice-identity", "microservice-inventory", "microservice-marketing",
         "microservice-notification", "microservice-order", "microservice-payment",
         "microservice-review", "microservice-search", "microservice-shipping",
-        "microservice-store", "microservice-user"
+        "microservice-shopcart", "microservice-store", "microservice-user"
     ]
     
     gateway_service = ["microservice-gateway"]
+    
+    # Container name mapping (service name -> container name)
+    container_names = {
+        "postgres": "karibea-postgres",
+        "kafka-0": "karibea-kafka-0",
+        "kafka-1": "karibea-kafka-1",
+        "kafka-2": "karibea-kafka-2",
+        "kafka-init": "karibea-kafka-init",
+        "microservice-config": "karibea-config",
+        "microservice-eureka": "karibea-eureka",
+        "microservice-gateway": "karibea-gateway",
+        "microservice-catalog": "karibea-catalog",
+        "microservice-chatbot": "karibea-chatbot",
+        "microservice-identity": "karibea-identity",
+        "microservice-inventory": "karibea-inventory",
+        "microservice-marketing": "karibea-marketing",
+        "microservice-notification": "karibea-notification",
+        "microservice-order": "karibea-order",
+        "microservice-payment": "karibea-payment",
+        "microservice-review": "karibea-review",
+        "microservice-search": "karibea-search",
+        "microservice-shipping": "karibea-shipping",
+        "microservice-shopcart": "karibea-shopcart",
+        "microservice-store": "karibea-store",
+        "microservice-user": "karibea-user",
+    }
+    
+    def get_container_name(service):
+        return container_names.get(service, service)
     
     try:
         # =====================================================================
@@ -180,12 +209,12 @@ def run_compose(environment):
         print("📊 Phase 0: PostgreSQL Database")
         print("="*60)
         
-        if is_container_running("postgres") and is_container_healthy("postgres"):
+        if is_container_running(get_container_name("postgres")) and is_container_healthy(get_container_name("postgres")):
             print("   ✅ PostgreSQL is already running and healthy. Skipping...")
         else:
             subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + database_services, check=True)
             print("   ⏳ Waiting for PostgreSQL to initialize...")
-            if not wait_for_healthy("postgres", timeout=60):
+            if not wait_for_healthy(get_container_name("postgres"), timeout=60):
                 print("   ⚠️  PostgreSQL healthcheck timeout, continuing...")
         
         # =====================================================================
@@ -195,8 +224,8 @@ def run_compose(environment):
         print("📨 Phase 0.5: Kafka Cluster (3 brokers)")
         print("="*60)
         
-        kafka_running = all(is_container_running(f"kafka-{i}") for i in range(3))
-        kafka_healthy = all(is_container_healthy(f"kafka-{i}") for i in range(3))
+        kafka_running = all(is_container_running(get_container_name(f"kafka-{i}")) for i in range(3))
+        kafka_healthy = all(is_container_healthy(get_container_name(f"kafka-{i}")) for i in range(3))
         
         if kafka_running and kafka_healthy:
             print("   ✅ Kafka cluster is already running and healthy. Skipping...")
@@ -222,13 +251,13 @@ def run_compose(environment):
         print("⚙️  Phase 1: Config Service (CRITICAL)")
         print("="*60)
         
-        if is_container_running("microservice-config") and is_container_healthy("microservice-config"):
+        if is_container_running(get_container_name("microservice-config")) and is_container_healthy(get_container_name("microservice-config")):
             print("   ✅ Config Service is already running and healthy.")
             print("   ℹ️  Skipping to avoid disrupting dependent services...")
         else:
             # Only build if not running - use 'up -d' without --build if container exists
             result = subprocess.run(
-                ["docker", "inspect", "microservice-config"],
+                ["docker", "inspect", get_container_name("microservice-config")],
                 capture_output=True, check=False
             )
             if result.returncode == 0:
@@ -239,7 +268,7 @@ def run_compose(environment):
                 subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "--build", "-d"] + config_service, check=True)
             
             print("   ⏳ Waiting for Config Service to be healthy...")
-            if not wait_for_healthy("microservice-config", timeout=90):
+            if not wait_for_healthy(get_container_name("microservice-config"), timeout=90):
                 print("   ⚠️  Config Service healthcheck timeout, continuing...")
         
         # =====================================================================
@@ -249,12 +278,12 @@ def run_compose(environment):
         print("🔍 Phase 2: Eureka Service Discovery (CRITICAL)")
         print("="*60)
         
-        if is_container_running("microservice-eureka") and is_container_healthy("microservice-eureka"):
+        if is_container_running(get_container_name("microservice-eureka")) and is_container_healthy(get_container_name("microservice-eureka")):
             print("   ✅ Eureka Service is already running and healthy.")
             print("   ℹ️  Skipping to avoid disrupting dependent services...")
         else:
             result = subprocess.run(
-                ["docker", "inspect", "microservice-eureka"],
+                ["docker", "inspect", get_container_name("microservice-eureka")],
                 capture_output=True, check=False
             )
             if result.returncode == 0:
@@ -263,7 +292,7 @@ def run_compose(environment):
                 subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "--build", "-d"] + eureka_service, check=True)
             
             print("   ⏳ Waiting for Eureka Service to be healthy...")
-            if not wait_for_healthy("microservice-eureka", timeout=90):
+            if not wait_for_healthy(get_container_name("microservice-eureka"), timeout=90):
                 print("   ⚠️  Eureka Service healthcheck timeout, continuing...")
         
         # =====================================================================
@@ -276,7 +305,7 @@ def run_compose(environment):
         # Check which services need to be started
         services_to_start = []
         for svc in other_services:
-            container_name = svc  # Container names match service names
+            container_name = get_container_name(svc)
             if not is_container_running(container_name):
                 services_to_start.append(svc)
         
@@ -296,7 +325,7 @@ def run_compose(environment):
         print("🌐 Phase 4: API Gateway")
         print("="*60)
         
-        if is_container_running("microservice-gateway"):
+        if is_container_running(get_container_name("microservice-gateway")):
             print("   ✅ Gateway is already running. Refreshing...")
             subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "up", "-d"] + gateway_service, check=True)
         else:

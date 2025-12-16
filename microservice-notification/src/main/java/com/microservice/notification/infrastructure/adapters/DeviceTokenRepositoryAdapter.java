@@ -2,7 +2,7 @@ package com.microservice.notification.infrastructure.adapters;
 
 import com.microservice.notification.domain.model.DeviceToken;
 import com.microservice.notification.domain.port.out.DeviceTokenRepositoryPort;
-import com.microservice.notification.infrastructure.adapters.mapper.NotificationMapper;
+import com.microservice.notification.infrastructure.adapters.mapper.DeviceTokenMapper;
 import com.microservice.notification.infrastructure.entities.DeviceTokenEntity;
 import com.microservice.notification.infrastructure.repositories.JpaDeviceTokenRepository;
 import org.springframework.stereotype.Component;
@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
 public class DeviceTokenRepositoryAdapter implements DeviceTokenRepositoryPort {
 
     private final JpaDeviceTokenRepository jpaDeviceTokenRepository;
-    private final NotificationMapper mapper;
+    private final DeviceTokenMapper mapper;
 
-    public DeviceTokenRepositoryAdapter(JpaDeviceTokenRepository jpaDeviceTokenRepository, NotificationMapper mapper) {
+    public DeviceTokenRepositoryAdapter(JpaDeviceTokenRepository jpaDeviceTokenRepository, DeviceTokenMapper mapper) {
         this.jpaDeviceTokenRepository = jpaDeviceTokenRepository;
         this.mapper = mapper;
     }

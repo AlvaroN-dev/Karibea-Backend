@@ -2,7 +2,7 @@ package com.microservice.notification.infrastructure.adapters;
 
 import com.microservice.notification.domain.model.NotificationTemplate;
 import com.microservice.notification.domain.port.out.NotificationTemplateRepositoryPort;
-import com.microservice.notification.infrastructure.adapters.mapper.NotificationMapper;
+import com.microservice.notification.infrastructure.adapters.mapper.NotificationTemplateMapper;
 import com.microservice.notification.infrastructure.entities.NotificationTemplateEntity;
 import com.microservice.notification.infrastructure.repositories.JpaNotificationTemplateRepository;
 import org.springframework.stereotype.Component;
@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
 public class NotificationTemplateRepositoryAdapter implements NotificationTemplateRepositoryPort {
 
     private final JpaNotificationTemplateRepository jpaNotificationTemplateRepository;
-    private final NotificationMapper mapper;
+    private final NotificationTemplateMapper mapper;
 
     public NotificationTemplateRepositoryAdapter(JpaNotificationTemplateRepository jpaNotificationTemplateRepository,
-            NotificationMapper mapper) {
+            NotificationTemplateMapper mapper) {
         this.jpaNotificationTemplateRepository = jpaNotificationTemplateRepository;
         this.mapper = mapper;
     }

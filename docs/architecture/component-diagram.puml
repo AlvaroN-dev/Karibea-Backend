@@ -1,0 +1,257 @@
+@startuml Karibea_Component_Diagram
+!theme cerulean-outline
+title Karibea Backend - Diagrama de Componentes UML
+
+skinparam componentStyle uml2
+skinparam backgroundColor #FEFEFE
+skinparam component {
+    BackgroundColor<<infrastructure>> #E3F2FD
+    BorderColor<<infrastructure>> #1565C0
+    BackgroundColor<<business>> #E8F5E9
+    BorderColor<<business>> #2E7D32
+    BackgroundColor<<data>> #FFF3E0
+    BorderColor<<data>> #E65100
+    BackgroundColor<<external>> #FCE4EC
+    BorderColor<<external>> #C2185B
+}
+
+' ============================================================================
+' EXTERNAL CLIENTS
+' ============================================================================
+actor "Web Client" as webclient
+actor "Mobile App" as mobileapp
+actor "External API" as externalapi
+
+package "External Services" <<external>> {
+    [Stripe API] as stripe
+    [PayPal API] as paypal
+    [Twilio SMS] as twilio
+    [SMTP Server] as smtp
+    [OpenAI / AI21] as ai
+    [Google OAuth2] as google
+}
+
+' ============================================================================
+' INFRASTRUCTURE LAYER
+' ============================================================================
+package "Infrastructure Layer" <<Rectangle>> {
+    
+    package "API Gateway" <<infrastructure>> {
+        [Gateway\n:8080] as gateway
+        note right of gateway
+            - JWT Validation
+            - Rate Limiting
+            - CORS
+            - Circuit Breaker
+            - Load Balancing
+        end note
+    }
+    
+    package "Service Discovery" <<infrastructure>> {
+        [Eureka Server\n:8761] as eureka
+    }
+    
+    package "Configuration" <<infrastructure>> {
+        [Config Server\n:8888] as config
+    }
+}
+
+' ============================================================================
+' BUSINESS SERVICES LAYER
+' ============================================================================
+package "Business Microservices" <<Rectangle>> {
+    
+    package "Authentication & Users" <<business>> {
+        [Identity\n:9000] as identity
+        [User\n:8083] as user
+    }
+    
+    package "Product Management" <<business>> {
+        [Catalog\n:8082] as catalog
+        [Inventory\n:8086] as inventory
+        [Search\n:8092] as search
+        [Review\n:8091] as review
+    }
+    
+    package "Sales & Orders" <<business>> {
+        [Order\n:8084] as order
+        [Payment\n:8085] as payment
+        [Shopcart\n:8087] as shopcart
+        [Shipping\n:8089] as shipping
+    }
+    
+    package "Marketing & Communication" <<business>> {
+        [Marketing\n:8088] as marketing
+        [Notification\n:8090] as notification
+    }
+    
+    package "Store & Support" <<business>> {
+        [Store\n:8093] as store
+        [Chatbot\n:8094] as chatbot
+    }
+}
+
+' ============================================================================
+' DATA LAYER
+' ============================================================================
+package "Data Layer" <<Rectangle>> {
+    
+    database "PostgreSQL\n:5432" <<data>> as postgres {
+        [karibea_identity]
+        [karibea_user]
+        [karibea_catalog]
+        [karibea_inventory]
+        [karibea_order]
+        [karibea_payment]
+        [karibea_shopcart]
+        [karibea_shipping]
+        [karibea_notification]
+        [karibea_marketing]
+        [karibea_review]
+        [karibea_search]
+        [karibea_store]
+        [karibea_chatbot]
+    }
+    
+    queue "Apache Kafka Cluster\n(KRaft Mode)" <<data>> as kafka {
+        [kafka-0:9092]
+        [kafka-1:9092]
+        [kafka-2:9092]
+    }
+}
+
+' ============================================================================
+' RELATIONSHIPS - CLIENT TO GATEWAY
+' ============================================================================
+webclient --> gateway : HTTPS
+mobileapp --> gateway : HTTPS
+externalapi --> gateway : HTTPS/REST
+
+' ============================================================================
+' RELATIONSHIPS - INFRASTRUCTURE
+' ============================================================================
+gateway --> eureka : Service Discovery
+gateway ..> config : Configuration
+eureka ..> config : Configuration
+
+' ============================================================================
+' RELATIONSHIPS - GATEWAY TO SERVICES
+' ============================================================================
+gateway --> identity : /api/auth/**
+gateway --> user : /api/users/**
+gateway --> catalog : /api/catalog/**
+gateway --> order : /api/orders/**
+gateway --> payment : /api/payments/**
+gateway --> inventory : /api/inventory/**
+gateway --> shopcart : /api/cart/**
+gateway --> shipping : /api/shipping/**
+gateway --> notification : /api/notifications/**
+gateway --> marketing : /api/marketing/**
+gateway --> review : /api/reviews/**
+gateway --> search : /api/search/**
+gateway --> store : /api/stores/**
+gateway --> chatbot : /api/chatbot/**
+
+' ============================================================================
+' RELATIONSHIPS - SERVICE DISCOVERY
+' ============================================================================
+identity --> eureka
+user --> eureka
+catalog --> eureka
+order --> eureka
+payment --> eureka
+inventory --> eureka
+shopcart --> eureka
+shipping --> eureka
+notification --> eureka
+marketing --> eureka
+review --> eureka
+search --> eureka
+store --> eureka
+chatbot --> eureka
+
+' ============================================================================
+' RELATIONSHIPS - SYNCHRONOUS (REST/FEIGN)
+' ============================================================================
+store --> user : <<FeignClient>>
+shopcart --> catalog : <<WebClient>>
+search --> catalog : <<WebClient>>
+
+' ============================================================================
+' RELATIONSHIPS - DATABASE
+' ============================================================================
+identity --> postgres
+user --> postgres
+catalog --> postgres
+order --> postgres
+payment --> postgres
+inventory --> postgres
+shopcart --> postgres
+shipping --> postgres
+notification --> postgres
+marketing --> postgres
+review --> postgres
+search --> postgres
+store --> postgres
+chatbot --> postgres
+
+' ============================================================================
+' RELATIONSHIPS - KAFKA (ASYNC EVENTS)
+' ============================================================================
+identity --> kafka : user-events
+user --> kafka : user-events
+catalog <--> kafka : product-events
+order --> kafka : order-events
+payment <--> kafka : payment-events
+inventory <--> kafka : inventory-events
+shopcart --> kafka : cart-events
+shipping <--> kafka : shipping-events
+notification <-- kafka : notification-events
+marketing --> kafka : marketing-events
+review --> kafka : review-events
+search <-- kafka : product-events
+chatbot <--> kafka : chatbot-messages
+
+' ============================================================================
+' RELATIONSHIPS - EXTERNAL SERVICES
+' ============================================================================
+payment --> stripe
+payment --> paypal
+notification --> twilio
+notification --> smtp
+chatbot --> ai
+identity --> google
+
+' ============================================================================
+' NOTES
+' ============================================================================
+note bottom of kafka
+    **Kafka Topics:**
+    - order-events
+    - payment-events
+    - inventory-events
+    - shipping-events
+    - product-events
+    - user-events
+    - notification-events
+    - marketing-events
+    - review-events
+    - cart-events
+    - chatbot-messages
+end note
+
+note bottom of postgres
+    **Database per Schema Pattern**
+    Each microservice has its own
+    schema for data isolation
+end note
+
+legend right
+    |= Color |= Type |
+    | <#E3F2FD> | Infrastructure |
+    | <#E8F5E9> | Business Service |
+    | <#FFF3E0> | Data Store |
+    | <#FCE4EC> | External Service |
+endlegend
+
+@enduml

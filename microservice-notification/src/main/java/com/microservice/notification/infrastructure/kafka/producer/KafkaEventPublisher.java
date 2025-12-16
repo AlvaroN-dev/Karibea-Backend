@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 public class KafkaEventPublisher implements EventPublisherPort {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaEventPublisher.class);
+    private static final String DEFAULT_TOPIC = "notification-events";
+    
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -23,13 +25,17 @@ public class KafkaEventPublisher implements EventPublisherPort {
 
     @Override
     public void publish(DomainEvent event) {
+        publish(DEFAULT_TOPIC, event);
+    }
+
+    @Override
+    public void publish(String topic, DomainEvent event) {
         try {
             String payload = objectMapper.writeValueAsString(event);
-            String topic = "notification.events"; // Default topic, logic could be more complex
             kafkaTemplate.send(topic, event.getAggregateId().toString(), payload);
             logger.info("Published event {} to topic {}", event.getEventType(), topic);
         } catch (JsonProcessingException e) {
-            logger.error("Error serializing event", e);
+            logger.error("Error serializing event: {}", e.getMessage(), e);
         }
     }
 

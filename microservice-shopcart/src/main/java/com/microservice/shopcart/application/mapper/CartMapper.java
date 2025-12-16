@@ -6,7 +6,6 @@ import com.microservice.shopcart.application.dto.response.ItemResponse;
 import com.microservice.shopcart.domain.models.CouponApplied;
 import com.microservice.shopcart.domain.models.Item;
 import com.microservice.shopcart.domain.models.ShoppingCart;
-import com.microservice.shopcart.domain.port.out.ProductServicePort;
 import com.microservice.shopcart.domain.port.out.StoreServicePort;
 import com.microservice.shopcart.domain.port.out.UserProfileServicePort;
 import org.springframework.stereotype.Component;
@@ -21,14 +20,11 @@ import java.util.List;
 public class CartMapper {
 
     private final UserProfileServicePort userProfileService;
-    private final ProductServicePort productService;
     private final StoreServicePort storeService;
 
     public CartMapper(UserProfileServicePort userProfileService,
-                     ProductServicePort productService,
                      StoreServicePort storeService) {
         this.userProfileService = userProfileService;
-        this.productService = productService;
         this.storeService = storeService;
     }
 

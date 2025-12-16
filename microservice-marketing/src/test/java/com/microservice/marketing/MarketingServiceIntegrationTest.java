@@ -8,7 +8,10 @@ import com.microservice.marketing.domain.model.CouponUsage;
 import com.microservice.marketing.domain.model.FlashSale;
 import com.microservice.marketing.domain.model.Promotion;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +34,13 @@ public class MarketingServiceIntegrationTest {
     @Autowired
     private ManageFlashSaleUseCase manageFlashSaleUseCase;
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @Mock
     private com.microservice.marketing.infrastructure.kafka.KafkaEventProducer kafkaEventProducer;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     void testPromotionLifecycle() {

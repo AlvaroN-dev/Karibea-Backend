@@ -1,6 +1,5 @@
 package com.microservice.shopcart.infrastructure.adapters;
 
-import com.microservice.shopcart.application.exception.ExternalServiceException;
 import com.microservice.shopcart.domain.port.out.UserProfileServicePort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

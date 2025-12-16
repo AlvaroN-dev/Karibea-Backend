@@ -2,7 +2,7 @@ package com.microservice.notification.infrastructure.adapters;
 
 import com.microservice.notification.domain.model.NotificationStatus;
 import com.microservice.notification.domain.port.out.NotificationStatusRepositoryPort;
-import com.microservice.notification.infrastructure.adapters.mapper.NotificationMapper;
+import com.microservice.notification.infrastructure.adapters.mapper.NotificationStatusMapper;
 import com.microservice.notification.infrastructure.repositories.JpaNotificationStatusRepository;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +15,10 @@ import java.util.stream.Collectors;
 public class NotificationStatusRepositoryAdapter implements NotificationStatusRepositoryPort {
 
     private final JpaNotificationStatusRepository jpaNotificationStatusRepository;
-    private final NotificationMapper mapper;
+    private final NotificationStatusMapper mapper;
 
     public NotificationStatusRepositoryAdapter(JpaNotificationStatusRepository jpaNotificationStatusRepository,
-            NotificationMapper mapper) {
+            NotificationStatusMapper mapper) {
         this.jpaNotificationStatusRepository = jpaNotificationStatusRepository;
         this.mapper = mapper;
     }

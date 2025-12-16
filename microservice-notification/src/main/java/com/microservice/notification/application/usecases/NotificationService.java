@@ -52,7 +52,7 @@ public class NotificationService implements CreateNotificationUseCase, UpdateNot
     @Override
     @Transactional
     public Notification update(UUID id, Notification notification) {
-        Notification existing = notificationRepositoryPort.findById(id)
+        notificationRepositoryPort.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found with id: " + id));
 
         notification.setId(id);

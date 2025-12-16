@@ -1,20 +1,7 @@
-version: '3.8'
-
 # =============================================================================
-# PRODUCTION RESOURCE ALLOCATION STRATEGY (24GB RAM, 4 Cores - Oracle Cloud)
+# KARIBEA BACKEND - DOCKER COMPOSE PRODUCTION
 # =============================================================================
-# CPU Distribution (4 cores total):
-#   - PostgreSQL: 0.5 CPU
-#   - Kafka (x3): 0.4 CPU each = 1.2 CPU total
-#   - Config + Eureka + Gateway: 1.0 CPU total
-#   - 14 Microservices: 0.2 CPU each = 2.8 CPU (shared via time-slicing)
-#   - System Reserve: ~0.5 CPU
-# -----------------------------------------------------------------------------
-# Memory Distribution (24GB total):
-#   - Infrastructure (Postgres + Kafka x3): ~5.6GB RAM
-#   - Core Services (Config + Eureka + Gateway): ~2.5GB RAM
-#   - Business Microservices (14 services): ~11.2GB RAM (~800MB each)
-#   - System Reserve: ~4.7GB RAM
+# ALL VALUES EXTERNALIZED TO .env - NO HARDCODED VALUES
 # =============================================================================
 
 services:
@@ -24,138 +11,194 @@ services:
   
   postgres:
     image: postgres:15-alpine
-    container_name: postgres
+    container_name: karibea-postgres
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=${POSTGRES_MAX_CONNECTIONS}"
+      - "-c"
+      - "shared_buffers=${POSTGRES_SHARED_BUFFERS}"
+      - "-c"
+      - "effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE}"
+      - "-c"
+      - "work_mem=${POSTGRES_WORK_MEM}"
+      - "-c"
+      - "maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM}"
+      - "-c"
+      - "wal_buffers=${POSTGRES_WAL_BUFFERS}"
+      - "-c"
+      - "min_wal_size=${POSTGRES_MIN_WAL_SIZE}"
+      - "-c"
+      - "max_wal_size=${POSTGRES_MAX_WAL_SIZE}"
+      - "-c"
+      - "checkpoint_completion_target=${POSTGRES_CHECKPOINT_COMPLETION_TARGET}"
+      - "-c"
+      - "random_page_cost=${POSTGRES_RANDOM_PAGE_COST}"
+      - "-c"
+      - "effective_io_concurrency=${POSTGRES_EFFECTIVE_IO_CONCURRENCY}"
+      - "-c"
+      - "default_statistics_target=${POSTGRES_DEFAULT_STATISTICS_TARGET}"
+      - "-c"
+      - "log_statement=${POSTGRES_LOG_STATEMENT}"
+      - "-c"
+      - "log_duration=${POSTGRES_LOG_DURATION}"
+      - "-c"
+      - "log_min_duration_statement=${POSTGRES_LOG_MIN_DURATION_STATEMENT}"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - microservices-net
+      - karibea-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          cpus: '0.15'
-          memory: 512M
+    mem_limit: ${MEM_LIMIT_POSTGRES}
+    mem_reservation: ${MEM_RESERVATION_POSTGRES}
+    cpus: ${CPUS_POSTGRES}
 
+  # ---------------------------------------------------------------------------
+  # KAFKA CLUSTER (3 Brokers - KRaft Mode)
+  # ---------------------------------------------------------------------------
+  
   kafka-0:
     image: apache/kafka:4.0.1
-    container_name: kafka-0
+    container_name: karibea-kafka-0
     environment:
-      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
-      - KAFKA_NODE_ID=${KAFKA_NODE_ID_1}
-      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
-      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
-      - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
-      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
-      - KAFKA_HEAP_OPTS=${KAFKA_HEAP_OPTS}
-      - KAFKA_LOG_RETENTION_HOURS=${KAFKA_LOG_RETENTION_HOURS}
-      - KAFKA_LOG_RETENTION_BYTES=${KAFKA_LOG_RETENTION_BYTES}
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID_0}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS_PROD_0}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS_PROD_0}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP_PROD}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS_PROD}
+      KAFKA_LOG_DIRS: ${KAFKA_LOG_DIRS}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE_PROD}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR_PROD}
+      KAFKA_MIN_INSYNC_REPLICAS: ${KAFKA_MIN_INSYNC_REPLICAS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_LOG_RETENTION_BYTES: ${KAFKA_LOG_RETENTION_BYTES}
+      KAFKA_LOG_SEGMENT_BYTES: ${KAFKA_LOG_SEGMENT_BYTES}
+      KAFKA_LOG_CLEANUP_POLICY: ${KAFKA_LOG_CLEANUP_POLICY}
+      KAFKA_JVM_PERFORMANCE_OPTS: ${KAFKA_JVM_PERFORMANCE_OPTS}
     volumes:
       - kafka_0_data_prod:/var/lib/kafka/data
     networks:
-      - microservices-net
+      - karibea-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: ${HEALTHCHECK_INTERVAL_KAFKA}
+      timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
+      retries: ${HEALTHCHECK_RETRIES_KAFKA}
+      start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.4'
-          memory: 1536M
-        reservations:
-          cpus: '0.15'
-          memory: 768M
+    mem_limit: ${MEM_LIMIT_KAFKA}
+    mem_reservation: ${MEM_RESERVATION_KAFKA}
+    cpus: ${CPUS_KAFKA}
 
   kafka-1:
     image: apache/kafka:4.0.1
-    container_name: kafka-1
+    container_name: karibea-kafka-1
     environment:
-      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
-      - KAFKA_NODE_ID=${KAFKA_NODE_ID_2}
-      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
-      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
-      - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
-      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
-      - KAFKA_HEAP_OPTS=${KAFKA_HEAP_OPTS}
-      - KAFKA_LOG_RETENTION_HOURS=${KAFKA_LOG_RETENTION_HOURS}
-      - KAFKA_LOG_RETENTION_BYTES=${KAFKA_LOG_RETENTION_BYTES}
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID_1}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS_PROD_1}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS_PROD_1}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP_PROD}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS_PROD}
+      KAFKA_LOG_DIRS: ${KAFKA_LOG_DIRS}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE_PROD}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR_PROD}
+      KAFKA_MIN_INSYNC_REPLICAS: ${KAFKA_MIN_INSYNC_REPLICAS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_LOG_RETENTION_BYTES: ${KAFKA_LOG_RETENTION_BYTES}
+      KAFKA_JVM_PERFORMANCE_OPTS: ${KAFKA_JVM_PERFORMANCE_OPTS}
     volumes:
       - kafka_1_data_prod:/var/lib/kafka/data
     networks:
-      - microservices-net
+      - karibea-network-prod
+    depends_on:
+      kafka-0:
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: ${HEALTHCHECK_INTERVAL_KAFKA}
+      timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
+      retries: ${HEALTHCHECK_RETRIES_KAFKA}
+      start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.4'
-          memory: 1536M
-        reservations:
-          cpus: '0.15'
-          memory: 768M
+    mem_limit: ${MEM_LIMIT_KAFKA}
+    mem_reservation: ${MEM_RESERVATION_KAFKA}
+    cpus: ${CPUS_KAFKA}
 
   kafka-2:
     image: apache/kafka:4.0.1
-    container_name: kafka-2
+    container_name: karibea-kafka-2
     environment:
-      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
-      - KAFKA_NODE_ID=${KAFKA_NODE_ID_3}
-      - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES}
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS}
-      - KAFKA_LISTENERS=${KAFKA_LISTENERS}
-      - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
-      - KAFKA_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES}
-      - KAFKA_HEAP_OPTS=${KAFKA_HEAP_OPTS}
-      - KAFKA_LOG_RETENTION_HOURS=${KAFKA_LOG_RETENTION_HOURS}
-      - KAFKA_LOG_RETENTION_BYTES=${KAFKA_LOG_RETENTION_BYTES}  
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID_2}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS_PROD_2}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS_PROD_2}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP_PROD}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS_PROD}
+      KAFKA_LOG_DIRS: ${KAFKA_LOG_DIRS}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE_PROD}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR_PROD}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR_PROD}
+      KAFKA_MIN_INSYNC_REPLICAS: ${KAFKA_MIN_INSYNC_REPLICAS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS}
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_LOG_RETENTION_BYTES: ${KAFKA_LOG_RETENTION_BYTES}
+      KAFKA_JVM_PERFORMANCE_OPTS: ${KAFKA_JVM_PERFORMANCE_OPTS}
     volumes:
       - kafka_2_data_prod:/var/lib/kafka/data
     networks:
-      - microservices-net
+      - karibea-network-prod
+    depends_on:
+      kafka-0:
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: ${HEALTHCHECK_INTERVAL_KAFKA}
+      timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
+      retries: ${HEALTHCHECK_RETRIES_KAFKA}
+      start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.4'
-          memory: 1536M
-        reservations:
-          cpus: '0.15'
-          memory: 768M
+    mem_limit: ${MEM_LIMIT_KAFKA}
+    mem_reservation: ${MEM_RESERVATION_KAFKA}
+    cpus: ${CPUS_KAFKA}
 
   kafka-init:
     image: apache/kafka:4.0.1
-    container_name: kafka-init
+    container_name: karibea-kafka-init
     depends_on:
       kafka-0:
         condition: service_healthy
@@ -165,165 +208,157 @@ services:
         condition: service_healthy
     command: >
       bash -c "
-      echo 'Waiting for Kafka cluster to be ready...' &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic orders &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic payments &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic inventory &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic notifications &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic shipping &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 3 --topic products &&
-      echo 'Topics created successfully'
+        echo 'Creating Kafka topics with replication factor 3...' &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic orders --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic order-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic payments --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic payment-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic inventory --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic inventory-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic notifications --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic notification-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic shipping --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic shipping-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic products --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic product-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic user-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic marketing-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic review-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic search-events --config min.insync.replicas=2 &&
+        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka-0:9092 --replication-factor 3 --partitions 6 --topic cart-events --config min.insync.replicas=2 &&
+        echo 'All production topics created successfully!'
       "
     networks:
-      - microservices-net
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 512M
+      - karibea-network-prod
+    restart: "no"
 
   # ===========================================================================
-  # CORE SERVICES (Config Server + Eureka) - Critical services
+  # CORE SERVICES
   # ===========================================================================
   
   microservice-config:
+    image: ${DOCKER_REGISTRY}karibea-config:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-config/Dockerfile
-    container_name: microservice-config
+      context: ./microservice-config
+      dockerfile: Dockerfile
+    container_name: karibea-config
     ports:
-      - "8888:8888"
+      - "${SERVER_PORT_CONFIG}:${SERVER_PORT_CONFIG}"
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SERVER_PORT=${SERVER_PORT_CONFIG}
-      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
-      - EUREKA_CLIENT_FETCH_REGISTRY=${EUREKA_CLIENT_FETCH_REGISTRY}
-      - JAVA_OPTS=${JAVA_OPTS_CONFIGURATION}
+      SERVER_PORT: ${SERVER_PORT_CONFIG}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_CONFIG}
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: ${SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS}
+      EUREKA_CLIENT_ENABLED: ${EUREKA_CLIENT_ENABLED_CONFIG}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_CONFIG}
     networks:
-      - microservices-net
+      - karibea-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8888'"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 45s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CONFIG}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_INFRA}
+      timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
+      retries: ${HEALTHCHECK_RETRIES_INFRA}
+      start_period: ${HEALTHCHECK_START_PERIOD_INFRA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 768M
-        reservations:
-          cpus: '0.1'
-          memory: 384M
+    mem_limit: ${MEM_LIMIT_CONFIG}
+    mem_reservation: ${MEM_RESERVATION_CONFIG}
+    cpus: ${CPUS_CONFIG}
 
   microservice-eureka:
+    image: ${DOCKER_REGISTRY}karibea-eureka:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-eureka/Dockerfile
-    container_name: microservice-eureka
+      context: ./microservice-eureka
+      dockerfile: Dockerfile
+    container_name: karibea-eureka
     ports:
-      - "8761:8761"
+      - "${SERVER_PORT_EUREKA}:${SERVER_PORT_EUREKA}"
     environment:
-      - SERVER_PORT=${SERVER_PORT_EUREKA}
-      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
-      - EUREKA_CLIENT_FETCH_REGISTRY=${EUREKA_CLIENT_FETCH_REGISTRY}
-      - SPRING_CONFIG_IMPORT=${SPRING_CONFIG_IMPORT}
-      - JAVA_OPTS=${JAVA_OPTS_CONFIGURATION}
-      - EUREKA_SERVER_ENABLE_SELF_PRESERVATION=${EUREKA_SERVER_ENABLE_SELF_PRESERVATION}
-      - EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD=${EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD}
+      SERVER_PORT: ${SERVER_PORT_EUREKA}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
+      EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY}
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: ${EUREKA_SERVER_ENABLE_SELF_PRESERVATION}
+      EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD: ${EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD}
+      EUREKA_SERVER_EVICTION_INTERVAL_TIMER_IN_MS: ${EUREKA_SERVER_EVICTION_INTERVAL_TIMER_IN_MS}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_EUREKA}
     networks:
-      - microservices-net
+      - karibea-network-prod
     depends_on:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8761'"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_EUREKA}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_INFRA}
+      timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
+      retries: ${HEALTHCHECK_RETRIES_INFRA}
+      start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.35'
-          memory: 1G
-        reservations:
-          cpus: '0.1'
-          memory: 512M
+    mem_limit: ${MEM_LIMIT_EUREKA}
+    mem_reservation: ${MEM_RESERVATION_EUREKA}
+    cpus: ${CPUS_EUREKA}
 
-  # ===========================================================================
-  # API GATEWAY - Production port 80
-  # ===========================================================================
-  
   microservice-gateway:
+    image: ${DOCKER_REGISTRY}karibea-gateway:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-gateway/Dockerfile
-    container_name: microservice-gateway
+      context: ./microservice-gateway
+      dockerfile: Dockerfile
+    container_name: karibea-gateway
     ports:
-      - "80:8080"
+      - "${SERVER_PORT_GATEWAY}:${SERVER_PORT_GATEWAY}"
     environment:
-      - SERVER_PORT=${SERVER_PORT_GATEWAY}
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
-      - SPRING_CONFIG_IMPORT=${SPRING_CONFIG_IMPORT}
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      - JAVA_OPTS=${JAVA_OPTS_CONFIGURATION}
-      # Resilience settings
-      - EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS=${EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS}
-      - EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS=${EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS}
-      - EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS=${EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS}
+      SERVER_PORT: ${SERVER_PORT_GATEWAY}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${JWT_ISSUER_URI}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_GATEWAY}
     networks:
-      - microservices-net
+      - karibea-network-prod
     depends_on:
       microservice-eureka:
         condition: service_healthy
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_GATEWAY}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_INFRA}
+      timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
+      retries: ${HEALTHCHECK_RETRIES_INFRA}
+      start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.35'
-          memory: 768M
-        reservations:
-          cpus: '0.1'
-          memory: 384M
+    mem_limit: ${MEM_LIMIT_GATEWAY}
+    mem_reservation: ${MEM_RESERVATION_GATEWAY}
+    cpus: ${CPUS_GATEWAY}
 
   # ===========================================================================
-  # BUSINESS MICROSERVICES - Production configuration with resilience
+  # BUSINESS MICROSERVICES
   # ===========================================================================
-  
+
   microservice-catalog:
+    image: ${DOCKER_REGISTRY}karibea-catalog:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-catalog/Dockerfile
-    container_name: microservice-catalog
-    environment: &common-env-prod
+      context: ./microservice-catalog
+      dockerfile: Dockerfile
+    container_name: karibea-catalog
+    expose:
+      - "${SERVER_PORT_CATALOG}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_CATALOG}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_CATALOG}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CATALOG}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      JAVA_OPTS: ${JAVA_OPTS_SERVICE}
-      # Resilience settings - tolerate Config/Eureka restarts
-      SPRING_CLOUD_CONFIG_FAIL_FAST: ${SPRING_CLOUD_CONFIG_FAIL_FAST}
-      SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL: ${SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL}
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: "${SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS}"
-      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: ${EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS}
-      EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS: ${EUREKA_CLIENT_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS}
-      EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS: ${EUREKA_CLIENT_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_JPA_SHOW_SQL: ${SPRING_JPA_SHOW_SQL_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
     networks:
-      - microservices-net
+      - karibea-network-prod
     depends_on:
       postgres:
         condition: service_healthy
@@ -334,101 +369,44 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CATALOG}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-chatbot:
-    build:
-      context: .
-      dockerfile: microservice-chatbot/Dockerfile
-    container_name: microservice-chatbot
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CHATBOT}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-shopcart:
-    build:
-      context: .
-      dockerfile: microservice-shopcart/Dockerfile
-    container_name: microservice-shopcart
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CARD}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
 
   microservice-identity:
+    image: ${DOCKER_REGISTRY}karibea-identity:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-identity/Dockerfile
-    container_name: microservice-identity
+      context: ./microservice-identity
+      dockerfile: Dockerfile
+    container_name: karibea-identity
+    expose:
+      - "${SERVER_PORT_IDENTITY}"
     environment:
-      <<: *common-env-prod
+      SERVER_PORT: ${SERVER_PORT_IDENTITY}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_IDENTITY}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_IDENTITY}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_IDENTITY}
     networks:
-      - microservices-net
+      - karibea-network-prod
     depends_on:
       postgres:
         condition: service_healthy
@@ -439,346 +417,40 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_IDENTITY}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-inventory:
-    build:
-      context: .
-      dockerfile: microservice-inventory/Dockerfile
-    container_name: microservice-inventory
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_INVENTORY}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-marketing:
-    build:
-      context: .
-      dockerfile: microservice-marketing/Dockerfile
-    container_name: microservice-marketing
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_MARKETING}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-notification:
-    build:
-      context: .
-      dockerfile: microservice-notification/Dockerfile
-    container_name: microservice-notification
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_NOTIFICATION}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-order:
-    build:
-      context: .
-      dockerfile: microservice-order/Dockerfile
-    container_name: microservice-order
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_ORDER}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-payment:
-    build:
-      context: .
-      dockerfile: microservice-payment/Dockerfile
-    container_name: microservice-payment
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PAYMENT}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-review:
-    build:
-      context: .
-      dockerfile: microservice-review/Dockerfile
-    container_name: microservice-review
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_REVIEW}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-search:
-    build:
-      context: .
-      dockerfile: microservice-search/Dockerfile
-    container_name: microservice-search
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SEARCH}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-shipping:
-    build:
-      context: .
-      dockerfile: microservice-shipping/Dockerfile
-    container_name: microservice-shipping
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHIPPING}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
-
-  microservice-store:
-    build:
-      context: .
-      dockerfile: microservice-store/Dockerfile
-    container_name: microservice-store
-    environment:
-      <<: *common-env-prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_STORE}
-    networks:
-      - microservices-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka-0:
-        condition: service_healthy
-      microservice-eureka:
-        condition: service_healthy
-      microservice-config:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
+    mem_limit: ${MEM_LIMIT_IDENTITY}
+    mem_reservation: ${MEM_RESERVATION_IDENTITY}
+    cpus: ${CPUS_IDENTITY}
 
   microservice-user:
+    image: ${DOCKER_REGISTRY}karibea-user:${VERSION}
     build:
-      context: .
-      dockerfile: microservice-user/Dockerfile
-    container_name: microservice-user
+      context: ./microservice-user
+      dockerfile: Dockerfile
+    container_name: karibea-user
+    expose:
+      - "${SERVER_PORT_USER}"
     environment:
-      <<: *common-env-prod
+      SERVER_PORT: ${SERVER_PORT_USER}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_USER}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_USER}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
     networks:
-      - microservices-net
+      - karibea-network-prod
     depends_on:
       postgres:
         condition: service_healthy
@@ -789,27 +461,540 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8080'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_USER}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
     restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 800M
-        reservations:
-          cpus: '0.05'
-          memory: 400M
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
 
+  microservice-order:
+    image: ${DOCKER_REGISTRY}karibea-order:${VERSION}
+    build:
+      context: ./microservice-order
+      dockerfile: Dockerfile
+    container_name: karibea-order
+    expose:
+      - "${SERVER_PORT_ORDER}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_ORDER}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_ORDER}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_ORDER}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_ORDER}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-payment:
+    image: ${DOCKER_REGISTRY}karibea-payment:${VERSION}
+    build:
+      context: ./microservice-payment
+      dockerfile: Dockerfile
+    container_name: karibea-payment
+    expose:
+      - "${SERVER_PORT_PAYMENT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_PAYMENT}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_PAYMENT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PAYMENT}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_PAYMENT}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-inventory:
+    image: ${DOCKER_REGISTRY}karibea-inventory:${VERSION}
+    build:
+      context: ./microservice-inventory
+      dockerfile: Dockerfile
+    container_name: karibea-inventory
+    expose:
+      - "${SERVER_PORT_INVENTORY}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_INVENTORY}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_INVENTORY}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_INVENTORY}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_INVENTORY}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-shopcart:
+    image: ${DOCKER_REGISTRY}karibea-shopcart:${VERSION}
+    build:
+      context: ./microservice-shopcart
+      dockerfile: Dockerfile
+    container_name: karibea-shopcart
+    expose:
+      - "${SERVER_PORT_SHOPCART}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_SHOPCART}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SHOPCART}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHOPCART}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHOPCART}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-shipping:
+    image: ${DOCKER_REGISTRY}karibea-shipping:${VERSION}
+    build:
+      context: ./microservice-shipping
+      dockerfile: Dockerfile
+    container_name: karibea-shipping
+    expose:
+      - "${SERVER_PORT_SHIPPING}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_SHIPPING}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SHIPPING}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHIPPING}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHIPPING}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-notification:
+    image: ${DOCKER_REGISTRY}karibea-notification:${VERSION}
+    build:
+      context: ./microservice-notification
+      dockerfile: Dockerfile
+    container_name: karibea-notification
+    expose:
+      - "${SERVER_PORT_NOTIFICATION}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_NOTIFICATION}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_NOTIFICATION}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_NOTIFICATION}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_MAIL_HOST: ${MAIL_HOST}
+      SPRING_MAIL_PORT: ${MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_NOTIFICATION}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-marketing:
+    image: ${DOCKER_REGISTRY}karibea-marketing:${VERSION}
+    build:
+      context: ./microservice-marketing
+      dockerfile: Dockerfile
+    container_name: karibea-marketing
+    expose:
+      - "${SERVER_PORT_MARKETING}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_MARKETING}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_MARKETING}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_MARKETING}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_MARKETING}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-review:
+    image: ${DOCKER_REGISTRY}karibea-review:${VERSION}
+    build:
+      context: ./microservice-review
+      dockerfile: Dockerfile
+    container_name: karibea-review
+    expose:
+      - "${SERVER_PORT_REVIEW}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_REVIEW}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_REVIEW}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_REVIEW}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_REVIEW}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-search:
+    image: ${DOCKER_REGISTRY}karibea-search:${VERSION}
+    build:
+      context: ./microservice-search
+      dockerfile: Dockerfile
+    container_name: karibea-search
+    expose:
+      - "${SERVER_PORT_SEARCH}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_SEARCH}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SEARCH}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SEARCH}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SEARCH}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-store:
+    image: ${DOCKER_REGISTRY}karibea-store:${VERSION}
+    build:
+      context: ./microservice-store
+      dockerfile: Dockerfile
+    container_name: karibea-store
+    expose:
+      - "${SERVER_PORT_STORE}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_STORE}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_STORE}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_STORE}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_STORE}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+  microservice-chatbot:
+    image: ${DOCKER_REGISTRY}karibea-chatbot:${VERSION}
+    build:
+      context: ./microservice-chatbot
+      dockerfile: Dockerfile
+    container_name: karibea-chatbot
+    expose:
+      - "${SERVER_PORT_CHATBOT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT_CHATBOT}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
+      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_CHATBOT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CHATBOT}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO_PROD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      CHATBOT_AI21_API_KEY: ${CHATBOT_AI21_API_KEY}
+      CHATBOT_AI21_API_URL: ${CHATBOT_AI21_API_URL}
+      CHATBOT_AI21_MODEL: ${CHATBOT_AI21_MODEL}
+      CHATBOT_AI21_MAX_TOKENS: ${CHATBOT_AI21_MAX_TOKENS}
+      CHATBOT_AI21_TEMPERATURE: ${CHATBOT_AI21_TEMPERATURE}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_SERVICE}
+    networks:
+      - karibea-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      microservice-eureka:
+        condition: service_healthy
+      microservice-config:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CHATBOT}/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL_SERVICE}
+      timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
+      retries: ${HEALTHCHECK_RETRIES_SERVICE}
+      start_period: ${HEALTHCHECK_START_PERIOD_SERVICE}
+    restart: always
+    mem_limit: ${MEM_LIMIT_SERVICE}
+    mem_reservation: ${MEM_RESERVATION_SERVICE}
+    cpus: ${CPUS_SERVICE}
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
 networks:
-  microservices-net:
+  karibea-network-prod:
     driver: bridge
+    name: karibea-network-prod
+    ipam:
+      driver: default
+      config:
+        - subnet: ${NETWORK_SUBNET_PROD}
 
+# =============================================================================
+# VOLUMES
+# =============================================================================
 volumes:
   postgres_data_prod:
+    name: karibea-postgres-data-prod
   kafka_0_data_prod:
+    name: karibea-kafka-0-data-prod
   kafka_1_data_prod:
+    name: karibea-kafka-1-data-prod
   kafka_2_data_prod:
+    name: karibea-kafka-2-data-prod
