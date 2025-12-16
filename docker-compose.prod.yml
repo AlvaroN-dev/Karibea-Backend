@@ -8,10 +8,12 @@ services:
   # ===========================================================================
   # INFRASTRUCTURE SERVICES
   # ===========================================================================
-  
+
   postgres:
     image: postgres:15-alpine
     container_name: karibea-postgres
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -54,7 +56,7 @@ services:
     networks:
       - karibea-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d postgres" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -67,7 +69,7 @@ services:
   # ---------------------------------------------------------------------------
   # KAFKA CLUSTER (3 Brokers - KRaft Mode)
   # ---------------------------------------------------------------------------
-  
+
   kafka-0:
     image: apache/kafka:4.0.1
     container_name: karibea-kafka-0
@@ -100,7 +102,7 @@ services:
     networks:
       - karibea-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1" ]
       interval: ${HEALTHCHECK_INTERVAL_KAFKA}
       timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
       retries: ${HEALTHCHECK_RETRIES_KAFKA}
@@ -143,7 +145,7 @@ services:
       kafka-0:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1" ]
       interval: ${HEALTHCHECK_INTERVAL_KAFKA}
       timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
       retries: ${HEALTHCHECK_RETRIES_KAFKA}
@@ -186,7 +188,7 @@ services:
       kafka-0:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1" ]
       interval: ${HEALTHCHECK_INTERVAL_KAFKA}
       timeout: ${HEALTHCHECK_TIMEOUT_KAFKA}
       retries: ${HEALTHCHECK_RETRIES_KAFKA}
@@ -235,12 +237,12 @@ services:
   # ===========================================================================
   # CORE SERVICES
   # ===========================================================================
-  
+
   microservice-config:
-    image: ${DOCKER_REGISTRY}karibea-config:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-config:${VERSION:-latest}
     build:
-      context: ./microservice-config
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-config/Dockerfile
     container_name: karibea-config
     ports:
       - "${SERVER_PORT_CONFIG}:${SERVER_PORT_CONFIG}"
@@ -253,7 +255,7 @@ services:
     networks:
       - karibea-network-prod
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CONFIG}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CONFIG}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_INFRA}
       timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
       retries: ${HEALTHCHECK_RETRIES_INFRA}
@@ -264,20 +266,20 @@ services:
     cpus: ${CPUS_CONFIG}
 
   microservice-eureka:
-    image: ${DOCKER_REGISTRY}karibea-eureka:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-eureka:${VERSION:-latest}
     build:
-      context: ./microservice-eureka
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-eureka/Dockerfile
     container_name: karibea-eureka
     ports:
       - "${SERVER_PORT_EUREKA}:${SERVER_PORT_EUREKA}"
     environment:
       SERVER_PORT: ${SERVER_PORT_EUREKA}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
-      EUREKA_CLIENT_REGISTER_WITH_EUREKA: ${EUREKA_CLIENT_REGISTER_WITH_EUREKA}
-      EUREKA_CLIENT_FETCH_REGISTRY: ${EUREKA_CLIENT_FETCH_REGISTRY}
-      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: ${EUREKA_SERVER_ENABLE_SELF_PRESERVATION}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
       EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD: ${EUREKA_SERVER_RENEWAL_PERCENT_THRESHOLD}
       EUREKA_SERVER_EVICTION_INTERVAL_TIMER_IN_MS: ${EUREKA_SERVER_EVICTION_INTERVAL_TIMER_IN_MS}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_EUREKA}
@@ -287,28 +289,28 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_EUREKA}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_EUREKA}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_INFRA}
       timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
       retries: ${HEALTHCHECK_RETRIES_INFRA}
       start_period: ${HEALTHCHECK_START_PERIOD_KAFKA}
-    restart: always
+    restart: unless-stopped
     mem_limit: ${MEM_LIMIT_EUREKA}
     mem_reservation: ${MEM_RESERVATION_EUREKA}
     cpus: ${CPUS_EUREKA}
 
   microservice-gateway:
-    image: ${DOCKER_REGISTRY}karibea-gateway:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-gateway:${VERSION:-latest}
     build:
-      context: ./microservice-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-gateway/Dockerfile
     container_name: karibea-gateway
     ports:
       - "${SERVER_PORT_GATEWAY}:${SERVER_PORT_GATEWAY}"
     environment:
       SERVER_PORT: ${SERVER_PORT_GATEWAY}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${JWT_ISSUER_URI}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS_GATEWAY}
@@ -320,7 +322,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_GATEWAY}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_GATEWAY}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_INFRA}
       timeout: ${HEALTHCHECK_TIMEOUT_INFRA}
       retries: ${HEALTHCHECK_RETRIES_INFRA}
@@ -335,10 +337,10 @@ services:
   # ===========================================================================
 
   microservice-catalog:
-    image: ${DOCKER_REGISTRY}karibea-catalog:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-catalog:${VERSION:-latest}
     build:
-      context: ./microservice-catalog
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-catalog/Dockerfile
     container_name: karibea-catalog
     expose:
       - "${SERVER_PORT_CATALOG}"
@@ -346,7 +348,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_CATALOG}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_CATALOG}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CATALOG}
@@ -369,7 +371,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CATALOG}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CATALOG}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -380,10 +382,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-identity:
-    image: ${DOCKER_REGISTRY}karibea-identity:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-identity:${VERSION:-latest}
     build:
-      context: ./microservice-identity
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-identity/Dockerfile
     container_name: karibea-identity
     expose:
       - "${SERVER_PORT_IDENTITY}"
@@ -391,7 +393,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_IDENTITY}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_IDENTITY}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_IDENTITY}
@@ -417,7 +419,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_IDENTITY}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_IDENTITY}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -428,10 +430,10 @@ services:
     cpus: ${CPUS_IDENTITY}
 
   microservice-user:
-    image: ${DOCKER_REGISTRY}karibea-user:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-user:${VERSION:-latest}
     build:
-      context: ./microservice-user
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-user/Dockerfile
     container_name: karibea-user
     expose:
       - "${SERVER_PORT_USER}"
@@ -439,7 +441,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_USER}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_USER}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_USER}
@@ -461,7 +463,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_USER}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_USER}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -472,10 +474,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-order:
-    image: ${DOCKER_REGISTRY}karibea-order:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-order:${VERSION:-latest}
     build:
-      context: ./microservice-order
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-order/Dockerfile
     container_name: karibea-order
     expose:
       - "${SERVER_PORT_ORDER}"
@@ -483,7 +485,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_ORDER}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_ORDER}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_ORDER}
@@ -505,7 +507,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_ORDER}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_ORDER}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -516,10 +518,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-payment:
-    image: ${DOCKER_REGISTRY}karibea-payment:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-payment:${VERSION:-latest}
     build:
-      context: ./microservice-payment
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-payment/Dockerfile
     container_name: karibea-payment
     expose:
       - "${SERVER_PORT_PAYMENT}"
@@ -527,7 +529,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_PAYMENT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_PAYMENT}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PAYMENT}
@@ -553,7 +555,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_PAYMENT}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_PAYMENT}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -564,10 +566,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-inventory:
-    image: ${DOCKER_REGISTRY}karibea-inventory:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-inventory:${VERSION:-latest}
     build:
-      context: ./microservice-inventory
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-inventory/Dockerfile
     container_name: karibea-inventory
     expose:
       - "${SERVER_PORT_INVENTORY}"
@@ -575,7 +577,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_INVENTORY}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_INVENTORY}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_INVENTORY}
@@ -597,7 +599,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_INVENTORY}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_INVENTORY}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -608,10 +610,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-shopcart:
-    image: ${DOCKER_REGISTRY}karibea-shopcart:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-shopcart:${VERSION:-latest}
     build:
-      context: ./microservice-shopcart
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-shopcart/Dockerfile
     container_name: karibea-shopcart
     expose:
       - "${SERVER_PORT_SHOPCART}"
@@ -619,7 +621,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_SHOPCART}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SHOPCART}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHOPCART}
@@ -641,7 +643,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHOPCART}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHOPCART}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -652,10 +654,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-shipping:
-    image: ${DOCKER_REGISTRY}karibea-shipping:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-shipping:${VERSION:-latest}
     build:
-      context: ./microservice-shipping
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-shipping/Dockerfile
     container_name: karibea-shipping
     expose:
       - "${SERVER_PORT_SHIPPING}"
@@ -663,7 +665,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_SHIPPING}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SHIPPING}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SHIPPING}
@@ -685,7 +687,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHIPPING}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SHIPPING}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -696,10 +698,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-notification:
-    image: ${DOCKER_REGISTRY}karibea-notification:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-notification:${VERSION:-latest}
     build:
-      context: ./microservice-notification
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-notification/Dockerfile
     container_name: karibea-notification
     expose:
       - "${SERVER_PORT_NOTIFICATION}"
@@ -707,7 +709,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_NOTIFICATION}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_NOTIFICATION}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_NOTIFICATION}
@@ -736,7 +738,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_NOTIFICATION}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_NOTIFICATION}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -747,10 +749,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-marketing:
-    image: ${DOCKER_REGISTRY}karibea-marketing:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-marketing:${VERSION:-latest}
     build:
-      context: ./microservice-marketing
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-marketing/Dockerfile
     container_name: karibea-marketing
     expose:
       - "${SERVER_PORT_MARKETING}"
@@ -758,7 +760,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_MARKETING}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_MARKETING}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_MARKETING}
@@ -780,7 +782,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_MARKETING}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_MARKETING}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -791,10 +793,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-review:
-    image: ${DOCKER_REGISTRY}karibea-review:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-review:${VERSION:-latest}
     build:
-      context: ./microservice-review
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-review/Dockerfile
     container_name: karibea-review
     expose:
       - "${SERVER_PORT_REVIEW}"
@@ -802,7 +804,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_REVIEW}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_REVIEW}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_REVIEW}
@@ -824,7 +826,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_REVIEW}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_REVIEW}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -835,10 +837,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-search:
-    image: ${DOCKER_REGISTRY}karibea-search:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-search:${VERSION:-latest}
     build:
-      context: ./microservice-search
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-search/Dockerfile
     container_name: karibea-search
     expose:
       - "${SERVER_PORT_SEARCH}"
@@ -846,7 +848,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_SEARCH}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_SEARCH}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_SEARCH}
@@ -869,7 +871,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SEARCH}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_SEARCH}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -880,10 +882,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-store:
-    image: ${DOCKER_REGISTRY}karibea-store:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-store:${VERSION:-latest}
     build:
-      context: ./microservice-store
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-store/Dockerfile
     container_name: karibea-store
     expose:
       - "${SERVER_PORT_STORE}"
@@ -891,7 +893,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_STORE}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_STORE}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_STORE}
@@ -913,7 +915,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_STORE}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_STORE}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}
@@ -924,10 +926,10 @@ services:
     cpus: ${CPUS_SERVICE}
 
   microservice-chatbot:
-    image: ${DOCKER_REGISTRY}karibea-chatbot:${VERSION}
+    image: ${DOCKER_REGISTRY:-}karibea-chatbot:${VERSION:-latest}
     build:
-      context: ./microservice-chatbot
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: microservice-chatbot/Dockerfile
     container_name: karibea-chatbot
     expose:
       - "${SERVER_PORT_CHATBOT}"
@@ -935,7 +937,7 @@ services:
       SERVER_PORT: ${SERVER_PORT_CHATBOT}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE_PROD}
       SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME_CHATBOT}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT:-optional:configserver:http://microservice-config:8888/}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_CHATBOT}
@@ -964,7 +966,7 @@ services:
       microservice-config:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CHATBOT}/actuator/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT_CHATBOT}/actuator/health" ]
       interval: ${HEALTHCHECK_INTERVAL_SERVICE}
       timeout: ${HEALTHCHECK_TIMEOUT_SERVICE}
       retries: ${HEALTHCHECK_RETRIES_SERVICE}

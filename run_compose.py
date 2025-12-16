@@ -9,6 +9,13 @@ import socket
 # Global variable to store the detected compose command
 COMPOSE_CMD = None
 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_compose_file_path(environment):
+    """Get the full path to the docker-compose file for the given environment."""
+    return os.path.join(SCRIPT_DIR, f"docker-compose.{environment}.yml")
+
 def check_docker_permissions():
     """Check if docker is accessible."""
     try:
@@ -142,7 +149,7 @@ def run_compose(environment):
         print("Invalid environment. Please choose 'dev' or 'prod'.")
         return
     
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
@@ -359,33 +366,80 @@ def run_compose(environment):
         print("\n❌ Error: 'docker-compose' command not found.")
         print("💡 Please ensure Docker Compose is installed and in your PATH.")
 
+import concurrent.futures
+
 def build_images(environment):
-    """Build all Docker images without starting containers."""
+    """Build all Docker images for the given environment (Parallelized)."""
     if environment not in ['dev', 'prod']:
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
     
     print(f"\n🔨 Building all Docker images for {environment.upper()}...")
+    print("⚠️  Building in PARALLEL (max 3) to speed up process.")
     print("This will NOT restart running containers.\n")
     
-    try:
-        subprocess.run(COMPOSE_CMD + [ "-f", compose_file, "build"], check=True)
-        print(f"\n✅ All images built successfully for {environment.upper()}.")
-        print("💡 Use option 1 or 2 to start the environment.")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Error building images: {e}")
+    # Define service groups
+    core_services = ["microservice-config", "microservice-eureka", "microservice-gateway"]
+    business_services = [
+        "microservice-catalog", "microservice-chatbot", "microservice-identity",
+        "microservice-inventory", "microservice-marketing", "microservice-notification",
+        "microservice-order", "microservice-payment", "microservice-review",
+        "microservice-search", "microservice-shipping", "microservice-shopcart",
+        "microservice-store", "microservice-user"
+    ]
+    
+    all_services = core_services + business_services
+    total = len(all_services)
+    failed_services = []
+    
+    def build_service(service):
+        print(f"   📦 Building {service}...")
+        try:
+            # Removed --no-cache to allow faster restarts/rebuilds
+            result = subprocess.run(
+                COMPOSE_CMD + ["-f", compose_file, "build", service],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                check=False,
+                text=True
+            )
+            if result.returncode != 0:
+                print(f"   ❌ Failed to build {service}:\n{result.stderr}")
+                return service
+            else:
+                print(f"   ✅ {service} built successfully")
+                return None
+        except Exception as e:
+            print(f"   ❌ Exception building {service}: {e}")
+            return service
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(build_service, svc): svc for svc in all_services}
+        for future in concurrent.futures.as_completed(futures):
+            failed = future.result()
+            if failed:
+                failed_services.append(failed)
+        
+    print(f"\n{'='*60}")
+    if not failed_services:
+        print(f"✅ All {total} images built successfully for {environment.upper()}!")
+    else:
+        print(f"⚠️  Built {total - len(failed_services)}/{total} images.")
+        print(f"❌ Failed services: {', '.join(failed_services)}")
+    print(f"💡 Use option 1 or 2 to start the environment.")
+    print(f"{'='*60}")
 
 def stop_compose(environment):
     if environment not in ['dev', 'prod']:
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
@@ -402,7 +456,7 @@ def clean_volumes(environment):
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
@@ -430,7 +484,7 @@ def view_logs(environment):
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
@@ -450,7 +504,7 @@ def view_specific_logs(environment):
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
@@ -519,7 +573,7 @@ def show_status(environment):
         print("Invalid environment.")
         return
         
-    compose_file = f"docker-compose.{environment}.yml"
+    compose_file = get_compose_file_path(environment)
     if not os.path.exists(compose_file):
         print(f"Error: {compose_file} not found.")
         return
@@ -533,6 +587,38 @@ def show_status(environment):
 if __name__ == "__main__":
     initialize()
     
+    # Check for command line arguments
+    if len(sys.argv) > 1:
+        command = sys.argv[1].lower()
+        if command == 'dev':
+            run_compose('dev')
+            sys.exit(0)
+        elif command == 'prod':
+            run_compose('prod')
+            sys.exit(0)
+        elif command == 'build-dev':
+            build_images('dev')
+            sys.exit(0)
+        elif command == 'build-prod':
+            build_images('prod')
+            sys.exit(0)
+        elif command == 'stop-dev':
+            stop_compose('dev')
+            sys.exit(0)
+        elif command == 'stop-prod':
+            stop_compose('prod')
+            sys.exit(0)
+        elif command == 'clean-dev':
+            clean_volumes('dev')
+            sys.exit(0)
+        elif command == 'clean-prod':
+            clean_volumes('prod')
+            sys.exit(0)
+        else:
+            print(f"Unknown command: {command}")
+            print("Available commands: dev, prod, build-dev, build-prod, stop-dev, stop-prod, clean-dev, clean-prod")
+            sys.exit(1)
+
     while True:
         print("\n" + "="*60)
         print("🚀 MICROSERVICES DOCKER COMPOSE MANAGER")

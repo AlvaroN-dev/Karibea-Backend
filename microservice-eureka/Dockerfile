@@ -1,64 +1,34 @@
-# =============================================================================
-# MICROSERVICE-EUREKA DOCKERFILE
-# Eureka Service Discovery Server
-# =============================================================================
-
-# Build stage
 FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for dependency caching
 COPY microservice-eureka/mvnw .
 COPY microservice-eureka/.mvn .mvn
 COPY microservice-eureka/pom.xml .
 COPY pom.xml ../pom.xml
 
-# Make mvnw executable
 RUN chmod +x mvnw
-
-# Download dependencies (cached layer)
 RUN ./mvnw dependency:go-offline -B || true
 
-# Copy source code
-COPY microservice-eureka/src src
-
-# Build the application
+COPY microservice-eureka/src ./src
 RUN ./mvnw clean package -DskipTests -B
 
-# Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 
-# Add labels for container management
-LABEL maintainer="Karibea Team"
-LABEL service="microservice-eureka"
-LABEL description="Eureka Service Discovery Server"
+RUN apk add --no-cache wget
 
-# Create non-root user for security
 RUN addgroup -g 1001 -S spring && adduser -u 1001 -S spring -G spring
 
 WORKDIR /app
-
-# Copy the built artifact from builder stage
 COPY --from=builder /app/target/*.jar app.jar
-
-# Change ownership to non-root user
 RUN chown -R spring:spring /app
 
-# Switch to non-root user
-USER spring:spring
+USER spring
 
-# Expose Eureka port
 EXPOSE 8761
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8761/actuator/health || exit 1
 
-# JVM tuning for containers
-ENV JAVA_OPTS="-XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:InitialRAMPercentage=50.0 \
-    -Djava.security.egd=file:/dev/./urandom \
-    -Dspring.profiles.active=docker"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dspring.profiles.active=docker"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

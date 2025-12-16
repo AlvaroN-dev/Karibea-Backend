@@ -19,17 +19,6 @@ spring:
 server:
   port: ${SERVER_PORT:8888}
 
-# Eureka Client Configuration
-eureka:
-  client:
-    register-with-eureka: ${EUREKA_REGISTER:true}
-    fetch-registry: ${EUREKA_FETCH:true}
-    service-url:
-      defaultZone: ${EUREKA_URI:http://microservice-eureka:8761/eureka/}
-  instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${random.uuid}
-
 # Actuator Configuration
 management:
   endpoints:
