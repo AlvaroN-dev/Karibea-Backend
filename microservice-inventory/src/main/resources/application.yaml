@@ -1,3 +1,5 @@
-spring:
+﻿spring:
   application:
     name: microservice-inventory
+  config:
+    import: "optional:configserver:http://localhost:8888"

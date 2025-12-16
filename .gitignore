@@ -39,8 +39,6 @@ build/
 .DS_Store
 
 ### Environment Files ###
-.env.dev
-.env.prod
+.env
 
 
-docker-compose.*.yml

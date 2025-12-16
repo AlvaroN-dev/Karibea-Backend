@@ -1,3 +1,451 @@
 spring:
   application:
     name: microservice-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  
+  # Config Server (optional - gateway can work without it)
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URI:http://microservice-config:8888}"
+  
+  # Cloud Gateway Configuration
+  cloud:
+    gateway:
+      # Global CORS Configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "${CORS_ALLOWED_ORIGINS:*}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
+      
+      # Default Filters
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+        - AddResponseHeader=X-Response-Time, %{T}
+      
+      # Discovery Client Integration
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      
+      # Routes Configuration
+      routes:
+        # =====================================================================
+        # IDENTITY SERVICE (Auth/OAuth2) - Port 9000
+        # =====================================================================
+        - id: microservice-identity
+          uri: lb://MICROSERVICE-IDENTITY
+          predicates:
+            - Path=/api/auth/**, /api/identity/**, /oauth2/**, /.well-known/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /api/auth/${segment}
+            - name: CircuitBreaker
+              args:
+                name: identityCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        - id: identity-swagger
+          uri: lb://MICROSERVICE-IDENTITY
+          predicates:
+            - Path=/identity/v3/api-docs, /identity/swagger-ui/**
+          filters:
+            - RewritePath=/identity/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # USER SERVICE - Port 8083
+        # =====================================================================
+        - id: microservice-user
+          uri: lb://MICROSERVICE-USER
+          predicates:
+            - Path=/api/users/**, /api/profiles/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userCircuitBreaker
+                fallbackUri: forward:/fallback/user
+        
+        - id: user-swagger
+          uri: lb://MICROSERVICE-USER
+          predicates:
+            - Path=/user/v3/api-docs, /user/swagger-ui/**
+          filters:
+            - RewritePath=/user/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # CATALOG SERVICE - Port 8082
+        # =====================================================================
+        - id: microservice-catalog
+          uri: lb://MICROSERVICE-CATALOG
+          predicates:
+            - Path=/api/catalog/**, /api/products/**, /api/categories/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogCircuitBreaker
+                fallbackUri: forward:/fallback/catalog
+        
+        - id: catalog-swagger
+          uri: lb://MICROSERVICE-CATALOG
+          predicates:
+            - Path=/catalog/v3/api-docs, /catalog/swagger-ui/**
+          filters:
+            - RewritePath=/catalog/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # ORDER SERVICE - Port 8084
+        # =====================================================================
+        - id: microservice-order
+          uri: lb://MICROSERVICE-ORDER
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        - id: order-swagger
+          uri: lb://MICROSERVICE-ORDER
+          predicates:
+            - Path=/order/v3/api-docs, /order/swagger-ui/**
+          filters:
+            - RewritePath=/order/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # PAYMENT SERVICE - Port 8085
+        # =====================================================================
+        - id: microservice-payment
+          uri: lb://MICROSERVICE-PAYMENT
+          predicates:
+            - Path=/api/payments/**, /api/transactions/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentCircuitBreaker
+                fallbackUri: forward:/fallback/payment
+        
+        - id: payment-swagger
+          uri: lb://MICROSERVICE-PAYMENT
+          predicates:
+            - Path=/payment/v3/api-docs, /payment/swagger-ui/**
+          filters:
+            - RewritePath=/payment/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # INVENTORY SERVICE - Port 8086
+        # =====================================================================
+        - id: microservice-inventory
+          uri: lb://MICROSERVICE-INVENTORY
+          predicates:
+            - Path=/api/inventory/**, /api/stock/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryCircuitBreaker
+                fallbackUri: forward:/fallback/inventory
+        
+        - id: inventory-swagger
+          uri: lb://MICROSERVICE-INVENTORY
+          predicates:
+            - Path=/inventory/v3/api-docs, /inventory/swagger-ui/**
+          filters:
+            - RewritePath=/inventory/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # SHOPCART SERVICE - Port 8087
+        # =====================================================================
+        - id: microservice-shopcart
+          uri: lb://MICROSERVICE-SHOPCART
+          predicates:
+            - Path=/api/cart/**, /api/shopcart/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: shopcartCircuitBreaker
+                fallbackUri: forward:/fallback/shopcart
+        
+        - id: shopcart-swagger
+          uri: lb://MICROSERVICE-SHOPCART
+          predicates:
+            - Path=/shopcart/v3/api-docs, /shopcart/swagger-ui/**
+          filters:
+            - RewritePath=/shopcart/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # MARKETING SERVICE - Port 8088
+        # =====================================================================
+        - id: microservice-marketing
+          uri: lb://MICROSERVICE-MARKETING
+          predicates:
+            - Path=/api/marketing/**, /api/promotions/**, /api/coupons/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: marketingCircuitBreaker
+                fallbackUri: forward:/fallback/marketing
+        
+        - id: marketing-swagger
+          uri: lb://MICROSERVICE-MARKETING
+          predicates:
+            - Path=/marketing/v3/api-docs, /marketing/swagger-ui/**
+          filters:
+            - RewritePath=/marketing/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # SHIPPING SERVICE - Port 8089
+        # =====================================================================
+        - id: microservice-shipping
+          uri: lb://MICROSERVICE-SHIPPING
+          predicates:
+            - Path=/api/shipping/**, /api/deliveries/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: shippingCircuitBreaker
+                fallbackUri: forward:/fallback/shipping
+        
+        - id: shipping-swagger
+          uri: lb://MICROSERVICE-SHIPPING
+          predicates:
+            - Path=/shipping/v3/api-docs, /shipping/swagger-ui/**
+          filters:
+            - RewritePath=/shipping/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # NOTIFICATION SERVICE - Port 8090
+        # =====================================================================
+        - id: microservice-notification
+          uri: lb://MICROSERVICE-NOTIFICATION
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+        
+        - id: notification-swagger
+          uri: lb://MICROSERVICE-NOTIFICATION
+          predicates:
+            - Path=/notification/v3/api-docs, /notification/swagger-ui/**
+          filters:
+            - RewritePath=/notification/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # REVIEW SERVICE - Port 8091
+        # =====================================================================
+        - id: microservice-review
+          uri: lb://MICROSERVICE-REVIEW
+          predicates:
+            - Path=/api/reviews/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: reviewCircuitBreaker
+                fallbackUri: forward:/fallback/review
+        
+        - id: review-swagger
+          uri: lb://MICROSERVICE-REVIEW
+          predicates:
+            - Path=/review/v3/api-docs, /review/swagger-ui/**
+          filters:
+            - RewritePath=/review/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # SEARCH SERVICE - Port 8092
+        # =====================================================================
+        - id: microservice-search
+          uri: lb://MICROSERVICE-SEARCH
+          predicates:
+            - Path=/api/search/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: searchCircuitBreaker
+                fallbackUri: forward:/fallback/search
+        
+        - id: search-swagger
+          uri: lb://MICROSERVICE-SEARCH
+          predicates:
+            - Path=/search/v3/api-docs, /search/swagger-ui/**
+          filters:
+            - RewritePath=/search/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # STORE SERVICE - Port 8093
+        # =====================================================================
+        - id: microservice-store
+          uri: lb://MICROSERVICE-STORE
+          predicates:
+            - Path=/api/stores/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: storeCircuitBreaker
+                fallbackUri: forward:/fallback/store
+        
+        - id: store-swagger
+          uri: lb://MICROSERVICE-STORE
+          predicates:
+            - Path=/store/v3/api-docs, /store/swagger-ui/**
+          filters:
+            - RewritePath=/store/(?<segment>.*), /${segment}
+        
+        # =====================================================================
+        # CHATBOT SERVICE - Port 8094
+        # =====================================================================
+        - id: microservice-chatbot
+          uri: lb://MICROSERVICE-CHATBOT
+          predicates:
+            - Path=/api/chatbot/**, /api/chat/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: chatbotCircuitBreaker
+                fallbackUri: forward:/fallback/chatbot
+        
+        - id: chatbot-swagger
+          uri: lb://MICROSERVICE-CHATBOT
+          predicates:
+            - Path=/chatbot/v3/api-docs, /chatbot/swagger-ui/**
+          filters:
+            - RewritePath=/chatbot/(?<segment>.*), /${segment}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://microservice-eureka:8761/eureka/}
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:karibea-super-secret-key-for-jwt-tokens-make-it-long-and-secure-256-bits}
+  issuer-uri: ${JWT_ISSUER_URI:http://microservice-identity:9000}
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      identityCircuitBreaker:
+        baseConfig: default
+      userCircuitBreaker:
+        baseConfig: default
+      catalogCircuitBreaker:
+        baseConfig: default
+      orderCircuitBreaker:
+        baseConfig: default
+      paymentCircuitBreaker:
+        baseConfig: default
+      inventoryCircuitBreaker:
+        baseConfig: default
+      shopcartCircuitBreaker:
+        baseConfig: default
+      marketingCircuitBreaker:
+        baseConfig: default
+      shippingCircuitBreaker:
+        baseConfig: default
+      notificationCircuitBreaker:
+        baseConfig: default
+      reviewCircuitBreaker:
+        baseConfig: default
+      searchCircuitBreaker:
+        baseConfig: default
+      storeCircuitBreaker:
+        baseConfig: default
+      chatbotCircuitBreaker:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+
+# Springdoc OpenAPI Configuration (Aggregated Swagger)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    urls:
+      - name: Gateway
+        url: /v3/api-docs
+      - name: Identity Service
+        url: /identity/v3/api-docs
+      - name: User Service
+        url: /user/v3/api-docs
+      - name: Catalog Service
+        url: /catalog/v3/api-docs
+      - name: Order Service
+        url: /order/v3/api-docs
+      - name: Payment Service
+        url: /payment/v3/api-docs
+      - name: Inventory Service
+        url: /inventory/v3/api-docs
+      - name: Shopcart Service
+        url: /shopcart/v3/api-docs
+      - name: Marketing Service
+        url: /marketing/v3/api-docs
+      - name: Shipping Service
+        url: /shipping/v3/api-docs
+      - name: Notification Service
+        url: /notification/v3/api-docs
+      - name: Review Service
+        url: /review/v3/api-docs
+      - name: Search Service
+        url: /search/v3/api-docs
+      - name: Store Service
+        url: /store/v3/api-docs
+      - name: Chatbot Service
+        url: /chatbot/v3/api-docs
+    urls-primary-name: Gateway
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
